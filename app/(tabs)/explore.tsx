@@ -7,6 +7,7 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 
 export default function TabTwoScreen() {
   return (
@@ -75,6 +76,9 @@ export default function TabTwoScreen() {
         <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
           <ThemedText type="link">Learn more</ThemedText>
         </ExternalLink>
+        <ThemedView style={{ marginTop: 16, backgroundColor: 'transparent' }}>
+          <ThemeToggleButton />
+        </ThemedView>
       </Collapsible>
       <Collapsible title="Animations">
         <ThemedText>
