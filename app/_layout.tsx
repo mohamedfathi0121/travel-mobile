@@ -1,3 +1,4 @@
+import { AuthProvider } from "@/context/AuthContext"; // ✅ استيراد AuthProvider
 import { AppThemeProvider, useAppTheme } from "@/ThemeContext";
 import {
   DarkTheme,
@@ -18,7 +19,6 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: true }} />
         <Stack.Screen name="+not-found" />
       </Stack>
-      {/* Ensure the status bar icons match the theme */}
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
     </ThemeProvider>
   );
@@ -35,7 +35,11 @@ export default function RootLayout() {
 
   return (
     <AppThemeProvider>
-      <RootLayoutNav />
+      <AuthProvider>
+        {" "}
+        {/* ✅ ضفنا الـ AuthProvider هنا */}
+        <RootLayoutNav />
+      </AuthProvider>
     </AppThemeProvider>
   );
 }
