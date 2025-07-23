@@ -1,7 +1,24 @@
-import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = "https://iklzpmnhifxwgmqydths.supabase.co";
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrbHpwbW5oaWZ4d2dtcXlkdGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxNzk4ODUsImV4cCI6MjA2Nzc1NTg4NX0.s3bDETdC3u-BvjHcnCUqD4QV2HcVCxZjwuvsKwPUI0Y";
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// File: lib/supabase.ts
+
+import 'react-native-url-polyfill/auto';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Supabase URL or Anon Key is missing. Check your .env file.");
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});
+

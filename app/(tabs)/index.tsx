@@ -6,6 +6,7 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
+import AllTrips from '@/components/AllTrips';
 
 export default function HomeScreen() {
   return (
@@ -16,12 +17,16 @@ export default function HomeScreen() {
           source={require('@/assets/images/partial-react-logo.png')}
           style={styles.reactLogo}
         />
+        
       }>
       <ThemedView style={styles.titleContainer}>
         <ThemeToggleButton />
         <ThemedText type="title">Welcome!</ThemedText>
+        
         <HelloWave />
+        
       </ThemedView>
+
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
         <ThemedText>
@@ -38,6 +43,7 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
+        
         <ThemedText type="subtitle">Step 2: Explore</ThemedText>
         <ThemedText>
           {`Tap the Explore tab to learn more about what's included in this starter app.`}
@@ -53,6 +59,7 @@ export default function HomeScreen() {
           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
       </ThemedView>
+
     </ParallaxScrollView>
   );
 }
