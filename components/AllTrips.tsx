@@ -10,7 +10,7 @@ import {
   FlatList,
   useColorScheme,
 } from "react-native";
-import { supabase } from "../supabase";
+import { supabase } from "../lib/supabase";
 import { Colors } from "../constants/Colors";
 import SkeletonPlaceholder from "react-native-skeleton-placeholder";
 

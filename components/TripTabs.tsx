@@ -7,7 +7,7 @@ import {
   useColorScheme,
 } from "react-native";
 
-const tabs = ["Approved", "Completed", "Cancelled", "Not Approved"];
+const tabs = ["Approved", "Completed"];
 
 interface TripTabsProps {
   currentTab: string;

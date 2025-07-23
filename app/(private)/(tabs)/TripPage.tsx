@@ -2,10 +2,10 @@ import { useNavigation } from "@react-navigation/native";
 import { useRouter } from "expo-router"; // ⬅️ الاستيراد الصحيح
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, useColorScheme } from "react-native";
-import { useAuth } from "../hooks/useAuth";
-import { supabase } from "../lib/supabase";
-import TripCard from "./TripCard";
-import TripTabs from "./TripTabs";
+import { useAuth } from "../../../hooks/useAuth";
+import { supabase } from "../../../lib/supabase";
+import TripCard from "../../../components/TripCard";
+import TripTabs from "../../../components/TripTabs";
 
 interface Trip {
   id: string;

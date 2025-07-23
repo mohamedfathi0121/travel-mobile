@@ -10,7 +10,7 @@ import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
-import { supabase } from "../supabase";
+import { supabase } from "../../../lib/supabase";
 import * as DocumentPicker from "expo-document-picker";
 
 const complaintSchema = z.object({

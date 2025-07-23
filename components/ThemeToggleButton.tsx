@@ -1,46 +1,38 @@
-import { Pressable, StyleSheet } from "react-native";
-
-import { useThemeColor } from "@/hooks/useThemeColor";
-import { ThemedText } from "./ThemedText";
-import { ThemedView } from "./ThemedView";
-import { IconSymbol } from "./ui/IconSymbol";
+import { View, Switch, StyleSheet } from "react-native";
 import { useAppTheme } from "@/ThemeContext";
+import { ThemedText } from "./ThemedText";
 
 export function ThemeToggleButton() {
   const { theme, setTheme } = useAppTheme();
-  const iconColor = useThemeColor({}, "icon");
-  const borderColor = useThemeColor(
-    { light: "#e8edf2", dark: "#1e293b" },
-    "input"
-  );
 
   const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
+    setTheme(theme === "light" ? "dark" : "light");
   };
 
-  const currentIcon = theme === "dark" ? "moon.fill" : "sun.max.fill";
-  const buttonText = `Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`;
-
   return (
-    <Pressable onPress={toggleTheme}>
-      <ThemedView style={[styles.button, { borderColor }]}>
-        <IconSymbol name={currentIcon} size={20} color={iconColor} />
-        <ThemedText>{buttonText}</ThemedText>
-      </ThemedView>
-    </Pressable>
+    <View style={styles.container}>
+      <ThemedText style={styles.label}>
+        {theme === "dark" ? "Dark Mode" : "Light Mode"}
+      </ThemedText>
+      <Switch
+        value={theme === "dark"} // ✅ ON when dark mode
+        onValueChange={toggleTheme}
+        thumbColor={theme === "dark" ? "#facc15" : "#3b82f6"} // Yellow for dark, blue for light
+        trackColor={{ false: "#cbd5e1", true: "#1e293b" }} // Gray for light, dark for dark mode
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+  container: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    borderWidth: 1,
+    justifyContent: "space-between",
+    padding: 10,
+    borderRadius: 8,
+  },
+  label: {
+    fontSize: 16,
   },
 });

@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 
 type TripData = {

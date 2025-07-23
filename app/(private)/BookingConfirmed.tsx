@@ -5,7 +5,7 @@ import { useLocalSearchParams, useNavigation } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 
 type LiveBookingData = {

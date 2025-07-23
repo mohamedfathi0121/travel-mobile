@@ -12,8 +12,8 @@ import {
   useColorScheme,
   View,
 } from "react-native";
-import { useAuth } from "../hooks/useAuth";
-import { supabase } from "../lib/supabase";
+import { useAuth } from "../../hooks/useAuth";
+import { supabase } from "../../lib/supabase";
 
 interface Review {
   id: number;
