@@ -1,4 +1,5 @@
 
+
 // File: lib/supabase.ts
 
 import 'react-native-url-polyfill/auto';
@@ -20,5 +21,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
-
 
