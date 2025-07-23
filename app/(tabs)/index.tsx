@@ -17,13 +17,16 @@ export default function HomeScreen() {
           source={require('@/assets/images/partial-react-logo.png')}
           style={styles.reactLogo}
         />
+        
       }>
       <ThemedView style={styles.titleContainer}>
         <ThemeToggleButton />
         <ThemedText type="title">Welcome!</ThemedText>
+        
         <HelloWave />
         
       </ThemedView>
+
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
         <ThemedText>
@@ -56,7 +59,7 @@ export default function HomeScreen() {
           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
       </ThemedView>
-      
+
     </ParallaxScrollView>
   );
 }
