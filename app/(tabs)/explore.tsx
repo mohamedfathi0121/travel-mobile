@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 
+
 export default function TabTwoScreen() {
   return (
     <ParallaxScrollView
@@ -96,6 +97,7 @@ export default function TabTwoScreen() {
           ),
         })}
       </Collapsible>
+     
     </ParallaxScrollView>
   );
 }

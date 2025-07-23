@@ -1,3 +1,4 @@
+import AllTrips from "@/components/AllTrips";
 import { AppThemeProvider, useAppTheme } from "@/ThemeContext";
 import {
   DarkTheme,
@@ -36,6 +37,7 @@ export default function RootLayout() {
   return (
     <AppThemeProvider>
       <RootLayoutNav />
+      
     </AppThemeProvider>
   );
 }
