@@ -1,4 +1,8 @@
+
 // In app/_layout.tsx
+
+
+import AllTrips from "@/components/AllTrips";
 
 import { AppThemeProvider, useAppTheme } from "@/ThemeContext";
 import {
@@ -38,6 +42,7 @@ export default function RootLayout() {
   return (
     <AppThemeProvider>
       <RootLayoutNav />
+      
     </AppThemeProvider>
   );
 }
