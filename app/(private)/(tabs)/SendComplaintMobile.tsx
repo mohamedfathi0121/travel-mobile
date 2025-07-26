@@ -1,10 +1,7 @@
 import {
-  View,
-  Text,
+  ScrollView,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Alert,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
@@ -12,6 +9,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import * as DocumentPicker from "expo-document-picker";
+import { ThemedText} from "../../../components/ThemedText";
+import { ThemedView } from "../../../components/ThemedView";
+import { useThemeColor } from "../../../hooks/useThemeColor";
 
 const complaintSchema = z.object({
   complaintType: z.string().min(1, "Complaint type is required"),
@@ -27,7 +27,7 @@ type Company = {
 
 type BaseTrip = {
   company_id: number;
-  companies: Company[]; // ← مصفوفة
+  companies: Company[];
 };
 
 type TripSchedule = {
@@ -44,6 +44,13 @@ const SendComplaintScreen = ({ userId }: { userId: string }) => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [attachment, setAttachment] = useState<any>(null);
+
+  const textPrimary = useThemeColor({}, "textPrimary");
+  const textSecondary = useThemeColor({}, "textSecondary");
+  const buttonPrimary = useThemeColor({}, "buttonPrimary");
+  const buttonPrimaryText = useThemeColor({}, "buttonPrimaryText");
+  const inputBg = useThemeColor({}, "input");
+  const bg = useThemeColor({}, "background");
 
   const {
     control,
@@ -73,15 +80,12 @@ const SendComplaintScreen = ({ userId }: { userId: string }) => {
         `)
         .eq("user_id", userId);
 
-      if (error || !bookings) {
-        console.error("Error fetching bookings:", error);
-        return;
-      }
+      if (error || !bookings) return;
 
       const today = new Date();
-      const completed = bookings.filter((b: Booking) => {
-        return b.trip_schedules?.some((s) => new Date(s.date) < today);
-      });
+      const completed = bookings.filter((b: Booking) =>
+        b.trip_schedules?.some((s) => new Date(s.date) < today)
+      );
 
       const uniqueCompanies: Company[] = [];
       const ids = new Set<number>();
@@ -114,37 +118,20 @@ const SendComplaintScreen = ({ userId }: { userId: string }) => {
 
   const uploadAttachment = async () => {
     if (!attachment) return null;
-
     const response = await fetch(attachment.uri);
     const blob = await response.blob();
     const ext = attachment.name.split(".").pop();
     const fileName = `${Date.now()}.${ext}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("complaints_attachments")
-      .upload(fileName, blob);
-
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      return null;
-    }
-
-    const { data } = supabase.storage
-      .from("complaints_attachments")
-      .getPublicUrl(fileName);
-
+    const { error } = await supabase.storage.from("complaints_attachments").upload(fileName, blob);
+    if (error) return null;
+    const { data } = supabase.storage.from("complaints_attachments").getPublicUrl(fileName);
     return data?.publicUrl || null;
   };
 
   const onSubmit = async (data: any) => {
-    if (!selectedCompany) {
-      Alert.alert("Please select a company.");
-      return;
-    }
-
+    if (!selectedCompany) return;
     const attachmentUrl = await uploadAttachment();
-
-    const { error } = await supabase.from("complaints").insert({
+    await supabase.from("complaints").insert({
       user_id: userId,
       company_id: selectedCompany.id,
       complaint_type: data.complaintType,
@@ -153,60 +140,40 @@ const SendComplaintScreen = ({ userId }: { userId: string }) => {
       email_to: selectedCompany.email,
       attachment_url: attachmentUrl,
     });
-
-    if (error) {
-      console.error("Error sending complaint:", error);
-      Alert.alert("Failed to send complaint.");
-    } else {
-      Alert.alert("Complaint sent successfully.");
-    }
   };
 
   return (
     
     <ScrollView className="flex-1 px-4 pt-8 bg-background">
-      <Text className="text-xl font-bold text-textPrimary mb-4">
-        Send Complaint
-      </Text>
+      <ThemedText className="text-xl font-bold text-textPrimary mb-4">Send Complaint</ThemedText>
 
-      <Text className="text-sm text-textPrimary mb-2">Select Company</Text>
-      <View className="flex-row flex-wrap gap-2 mb-2">
+      <ThemedText className="text-sm text-textPrimary mb-2">Select Company</ThemedText>
+      <ThemedView className="flex-row flex-wrap gap-2 mb-2">
         {companies.map((c) => (
           <TouchableOpacity
             key={c.id}
             onPress={() => setSelectedCompany(c)}
             className={`px-3 py-2 rounded-full ${
-              selectedCompany?.id === c.id
-                ? "bg-buttonPrimary"
-                : "bg-input"
+              selectedCompany?.id === c.id ? "bg-buttonPrimary" : "bg-input"
             }`}
           >
-            <Text
-              className={`text-sm ${
-                selectedCompany?.id === c.id
-                  ? "text-white"
-                  : "text-textPrimary"
-              }`}
-            >
+            <ThemedText className={`text-sm ${
+              selectedCompany?.id === c.id ? "text-white" : "text-textPrimary"
+            }`}>
               {c.name}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         ))}
-      </View>
-      {!selectedCompany && (
-        <Text className="text-red-500 text-xs mb-2">
-          Please select a company.
-        </Text>
-      )}
+      </ThemedView>
 
-      <Text className="text-sm text-textPrimary mb-1">Complaint Type</Text>
+      <ThemedText className="text-sm text-textPrimary mb-1">Complaint Type</ThemedText>
       <Controller
         control={control}
         name="complaintType"
         render={({ field: { onChange, value } }) => (
           <TextInput
             placeholder="Complaint type"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={textSecondary}
             value={value}
             onChangeText={onChange}
             className="bg-input text-textPrimary px-4 py-3 rounded-md mb-1"
@@ -214,19 +181,19 @@ const SendComplaintScreen = ({ userId }: { userId: string }) => {
         )}
       />
       {errors.complaintType && (
-        <Text className="text-red-500 text-xs mb-2">
+        <ThemedText className="text-red-500 text-xs mb-2">
           {errors.complaintType.message}
-        </Text>
+        </ThemedText>
       )}
 
-      <Text className="text-sm text-textPrimary mb-1">Subject</Text>
+      <ThemedText className="text-sm text-textPrimary mb-1">Subject</ThemedText>
       <Controller
         control={control}
         name="subject"
         render={({ field: { onChange, value } }) => (
           <TextInput
             placeholder="Subject"
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={textSecondary}
             value={value}
             onChangeText={onChange}
             className="bg-input text-textPrimary px-4 py-3 rounded-md mb-1"
@@ -234,19 +201,19 @@ const SendComplaintScreen = ({ userId }: { userId: string }) => {
         )}
       />
       {errors.subject && (
-        <Text className="text-red-500 text-xs mb-2">
+        <ThemedText className="text-red-500 text-xs mb-2">
           {errors.subject.message}
-        </Text>
+        </ThemedText>
       )}
 
-      <Text className="text-sm text-textPrimary mb-1">Message</Text>
+      <ThemedText className="text-sm text-textPrimary mb-1">Message</ThemedText>
       <Controller
         control={control}
         name="message"
         render={({ field: { onChange, value } }) => (
           <TextInput
             placeholder="Write your complaint here..."
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={textSecondary}
             value={value}
             onChangeText={onChange}
             multiline
@@ -256,27 +223,27 @@ const SendComplaintScreen = ({ userId }: { userId: string }) => {
         )}
       />
       {errors.message && (
-        <Text className="text-red-500 text-xs mb-2">
+        <ThemedText className="text-red-500 text-xs mb-2">
           {errors.message.message}
-        </Text>
+        </ThemedText>
       )}
 
       <TouchableOpacity
         onPress={pickDocument}
         className="bg-input py-3 px-4 rounded-md mt-2"
       >
-        <Text className="text-textPrimary">
+        <ThemedText className="text-textPrimary">
           {attachment ? `Selected: ${attachment.name}` : "Attach File (Optional)"}
-        </Text>
+        </ThemedText>
       </TouchableOpacity>
 
       <TouchableOpacity
         onPress={handleSubmit(onSubmit)}
         className="bg-buttonPrimary py-3 rounded-md mt-4"
       >
-        <Text className="text-center text-buttonPrimaryText font-medium">
+        <ThemedText className="text-center text-buttonPrimaryText font-medium">
           Submit Complaint
-        </Text>
+        </ThemedText>
       </TouchableOpacity>
     </ScrollView>
   );
