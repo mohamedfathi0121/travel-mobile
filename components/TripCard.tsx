@@ -1,11 +1,12 @@
-// ✅ TripCard.tsx (Dark/Light Theme)
+// ✅ TripCard.tsx
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { Colors } from "@/constants/Colors";
 import React from "react";
 import {
   Image,
   StyleSheet,
-  Text,
   TouchableOpacity,
-  View,
   useColorScheme,
 } from "react-native";
 
@@ -25,39 +26,43 @@ const TripCard: React.FC<TripCardProps> = ({
   onReviewClick,
 }) => {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const defaultImage = require("../assets/images/a.jpg"); // Default image path
+  const theme = Colors[colorScheme ?? "light"];
+  const defaultImage = require("../assets/images/a.jpg");
 
   return (
-    <View
-      style={[styles.card, { backgroundColor: isDark ? "#1E1E1E" : "#fff" }]}
-    >
-      <View style={styles.infoSection}>
-        <Text style={[styles.title, { color: isDark ? "#fff" : "#222" }]}>
+    <ThemedView style={[styles.card, { backgroundColor: theme.background }]}>
+      <ThemedView style={styles.infoSection}>
+        <ThemedText style={[styles.title, { color: theme.textPrimary }]}>
           {title}
-        </Text>
-        <Text style={[styles.date, { color: isDark ? "#ccc" : "#666" }]}>
+        </ThemedText>
+        <ThemedText style={[styles.date, { color: theme.textSecondary }]}>
           {date}
-        </Text>
+        </ThemedText>
 
         <TouchableOpacity
           onPress={showReviewButton ? onReviewClick : undefined}
           style={[
             styles.button,
-            showReviewButton ? styles.reviewBtn : styles.payBtn,
+            {
+              backgroundColor: showReviewButton
+                ? theme.buttonPrimary
+                : theme.buttonPrimaryHover,
+            },
           ]}
         >
-          <Text style={styles.buttonText}>
+          <ThemedText
+            style={[styles.buttonText, { color: theme.buttonPrimaryText }]}
+          >
             {showReviewButton ? "Review ⭐" : "Pay Now 💳"}
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
-      </View>
+      </ThemedView>
       <Image
         source={image ? { uri: image } : defaultImage}
         style={styles.image}
         resizeMode="cover"
       />
-    </View>
+    </ThemedView>
   );
 };
 
@@ -93,14 +98,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
   },
-  reviewBtn: {
-    backgroundColor: "#16a34a",
-  },
-  payBtn: {
-    backgroundColor: "#333",
-  },
   buttonText: {
-    color: "#fff",
     fontSize: 14,
     fontWeight: "500",
   },

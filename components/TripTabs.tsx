@@ -1,11 +1,9 @@
+// TripTabs.tsx
+import { Colors } from "@/constants/Colors"; // تأكد من المسار الصحيح
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useColorScheme,
-} from "react-native";
+import { StyleSheet, TouchableOpacity, useColorScheme } from "react-native";
+import { ThemedText } from "./ThemedText";
+import { ThemedView } from "./ThemedView";
 
 const tabs = ["Approved", "Completed"];
 
@@ -15,38 +13,35 @@ interface TripTabsProps {
 }
 
 const TripTabs: React.FC<TripTabsProps> = ({ currentTab, setCurrentTab }) => {
-  const theme = useColorScheme();
-  const isDark = theme === "dark";
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"];
 
   return (
-    <View style={styles.container}>
+    <ThemedView style={styles.container}>
       {tabs.map((tab) => {
         const isActive = tab === currentTab;
         return (
           <TouchableOpacity
             key={tab}
-            style={[
-              styles.tab,
-              isActive && { borderColor: isDark ? "#fff" : "#000" },
-            ]}
+            style={[styles.tab, isActive && { borderColor: theme.textPrimary }]}
             onPress={() => setCurrentTab(tab)}
           >
-            <Text
+            <ThemedText
               style={[
                 styles.tabText,
-                { color: isDark ? "#aaa" : "#888" },
+                { color: theme.textSecondary },
                 isActive && {
-                  color: isDark ? "#fff" : "#000",
+                  color: theme.textPrimary,
                   fontWeight: "600",
                 },
               ]}
             >
               {tab}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         );
       })}
-    </View>
+    </ThemedView>
   );
 };
 
