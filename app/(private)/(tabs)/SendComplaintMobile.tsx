@@ -163,6 +163,7 @@ const SendComplaintScreen = ({ userId }: { userId: string }) => {
   };
 
   return (
+    
     <ScrollView className="flex-1 px-4 pt-8 bg-background">
       <Text className="text-xl font-bold text-textPrimary mb-4">
         Send Complaint
