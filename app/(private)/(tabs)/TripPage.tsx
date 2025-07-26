@@ -1,11 +1,13 @@
+import { ThemedText } from "@/components/ThemedText";
+import { Colors } from "@/constants/Colors"; // ✅ استيراد الألوان
 import { useNavigation } from "@react-navigation/native";
-import { useRouter } from "expo-router"; // ⬅️ الاستيراد الصحيح
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, useColorScheme } from "react-native";
-import { useAuth } from "../../../hooks/useAuth";
-import { supabase } from "../../../lib/supabase";
+import { ScrollView, StyleSheet, useColorScheme } from "react-native";
 import TripCard from "../../../components/TripCard";
 import TripTabs from "../../../components/TripTabs";
+import { useAuth } from "../../../hooks/useAuth";
+import { supabase } from "../../../lib/supabase";
 
 interface Trip {
   id: string;
@@ -16,14 +18,14 @@ interface Trip {
 }
 
 const TripPage = () => {
-  const router = useRouter(); // ⬅️ تعريف router
+  const router = useRouter();
   const navigation = useNavigation();
   const { user } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [currentTab, setCurrentTab] = useState("Approved");
 
-  const theme = useColorScheme();
-  const isDark = theme === "dark";
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? "light"]; // ✅ اختيار الثيم حسب الوضع
 
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -102,11 +104,11 @@ const TripPage = () => {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? "#111" : "#fff" }]}
+      style={[styles.container, { backgroundColor: theme.background }]}
     >
-      <Text style={[styles.heading, { color: isDark ? "#fff" : "#000" }]}>
+      <ThemedText style={[styles.heading, { color: theme.textPrimary }]}>
         My Trips
-      </Text>
+      </ThemedText>
       <TripTabs currentTab={currentTab} setCurrentTab={setCurrentTab} />
       {filteredTrips.length > 0 ? (
         filteredTrips.map((trip) => (
@@ -120,9 +122,9 @@ const TripPage = () => {
           />
         ))
       ) : (
-        <Text style={{ color: isDark ? "#aaa" : "#000" }}>
+        <ThemedText style={{ color: theme.textSecondary }}>
           No {currentTab.toLowerCase()} trips found.
-        </Text>
+        </ThemedText>
       )}
     </ScrollView>
   );

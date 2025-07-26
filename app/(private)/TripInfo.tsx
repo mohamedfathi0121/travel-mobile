@@ -1,17 +1,20 @@
-""; // app/TripInfo.tsx
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   useColorScheme,
-  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Colors } from "../../constants/Colors";
 import { useAuth } from "../../hooks/useAuth";
 import { supabase } from "../../lib/supabase";
 
@@ -28,8 +31,7 @@ export default function TripInfo() {
   const router = useRouter();
   const { id: tripScheduleId } = useLocalSearchParams<{ id: string }>();
   const colorScheme = useColorScheme();
-
-  const isDark = colorScheme === "dark";
+  const theme = Colors[colorScheme ?? "light"];
 
   const [tripInfo, setTripInfo] = useState<any>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -38,6 +40,7 @@ export default function TripInfo() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingRating, setEditingRating] = useState(0);
   const [editingText, setEditingText] = useState("");
+  const [userReview, setUserReview] = useState<Review | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,6 +63,8 @@ export default function TripInfo() {
       .eq("base_trip_id", baseTripId);
     if (error) return console.error(error);
     setReviews(data);
+    const existingReview = data.find((r) => r.user_id === user?.id) || null;
+    setUserReview(existingReview);
   };
 
   const handleSubmit = async () => {
@@ -77,155 +82,306 @@ export default function TripInfo() {
     fetchReviews(tripInfo.base_trips.id);
   };
 
-  const theme = {
-    background: isDark ? "#111" : "#fff",
-    text: isDark ? "#eee" : "#111",
-    border: isDark ? "#444" : "#ccc",
-    card: isDark ? "#222" : "#f9f9f9",
+  const handleDelete = async (reviewId: number) => {
+    const { error } = await supabase
+      .from("reviews")
+      .delete()
+      .eq("id", reviewId);
+    if (error) return Alert.alert("Delete error", error.message);
+    setUserReview(null);
+    fetchReviews(tripInfo.base_trips.id);
   };
 
+  const handleUpdate = async () => {
+    if (!editingId) return;
+    const { error } = await supabase
+      .from("reviews")
+      .update({ rating: editingRating, review_text: editingText })
+      .eq("id", editingId);
+    if (error) return Alert.alert("Update error", error.message);
+    setEditingId(null);
+    fetchReviews(tripInfo.base_trips.id);
+  };
+
+  const averageRating =
+    reviews.reduce((sum, r) => sum + r.rating, 0) / (reviews.length || 1);
+  const ratingCounts: Record<number, number> = {};
+  reviews.forEach((r) => {
+    ratingCounts[r.rating] = (ratingCounts[r.rating] || 0) + 1;
+  });
+
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
-    >
-      <Pressable
-        style={styles.back}
-        onPress={() => router.replace("/TripPage")}
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
-        <Ionicons name="arrow-back" size={24} color={theme.text} />
-        <Text style={{ color: theme.text }}>Back</Text>
-      </Pressable>
-      <Text style={[styles.title, { color: theme.text }]}>
-        {tripInfo?.base_trips?.title}
-      </Text>
-      <Text style={[styles.desc, { color: theme.text }]}>
-        {tripInfo?.base_trips?.description}
-      </Text>
-
-      {/* Reviews List */}
-      {reviews.map((r) => (
-        <View
-          key={r.id}
-          style={[
-            styles.reviewCard,
-            { borderColor: theme.border, backgroundColor: theme.card },
-          ]}
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.reviewHeader}>
-            <Text style={{ color: theme.text }}>{r.rating} ★</Text>
-            <Text style={{ color: theme.text }}>
-              {new Date(r.created_at).toLocaleDateString()}
-            </Text>
-            {r.user_id === user?.id && (
-              <Pressable
-                onPress={() => {
-                  setEditingId(r.id);
-                  setEditingRating(r.rating);
-                  setEditingText(r.review_text);
-                }}
+          <ThemedText style={[styles.title, { color: theme.textPrimary }]}>
+            {" "}
+            {tripInfo?.base_trips?.title}{" "}
+          </ThemedText>
+          <ThemedText style={[styles.desc, { color: theme.textSecondary }]}>
+            {" "}
+            {tripInfo?.base_trips?.description}{" "}
+          </ThemedText>
+          {/* زر الرجوع */}
+          <Pressable
+            style={styles.backBtn}
+            onPress={() => router.replace("/(private)/(tabs)/TripPage")}
+          >
+            <ThemedText style={{ color: theme.textPrimary }}>
+              {"<- Back"}
+            </ThemedText>
+          </Pressable>
+          {/* التقييم العام */}
+          <ThemedView
+            style={[
+              styles.ratingSummary,
+              { backgroundColor: theme.background, borderColor: theme.icon },
+            ]}
+          >
+            <ThemedText
+              style={[styles.rateTitle, { color: theme.textPrimary }]}
+            >
+              How was {tripInfo?.base_trips?.title}?
+            </ThemedText>
+            <ThemedView style={styles.ratingOverall}>
+              <ThemedView
+                style={[
+                  { alignItems: "center" },
+                  { backgroundColor: theme.background },
+                ]}
               >
-                <Text style={styles.edit}>Edit</Text>
-              </Pressable>
-            )}
-          </View>
-          <Text style={{ color: theme.text }}>{r.review_text}</Text>
+                <ThemedText
+                  style={{
+                    fontSize: 32,
+                    fontWeight: "bold",
+                    color: theme.textPrimary,
+                  }}
+                >
+                  {averageRating.toFixed(1)}
+                </ThemedText>
+                <ThemedView style={{ flexDirection: "row", marginVertical: 4 }}>
+                  {[...Array(5)].map((_, i) => (
+                    <ThemedText key={i} style={{ fontSize: 20, color: "gold" }}>
+                      {i < Math.round(averageRating) ? "★" : "☆"}
+                    </ThemedText>
+                  ))}
+                </ThemedView>
+                <ThemedText style={{ color: theme.textSecondary }}>
+                  {reviews.length} reviews
+                </ThemedText>
+              </ThemedView>
+              <ThemedView style={{ flex: 1, marginLeft: 12 }}>
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const count = ratingCounts[star] || 0;
+                  const percent = reviews.length
+                    ? Math.round((count / reviews.length) * 100)
+                    : 0;
+                  return (
+                    <ThemedView key={star} style={styles.ratingRowBar}>
+                      <ThemedText
+                        style={{ width: 20, color: theme.textPrimary }}
+                      >
+                        {star}
+                      </ThemedText>
+                      <ThemedView
+                        style={[
+                          styles.barBackground,
+                          { backgroundColor: theme.textHardSecondary },
+                        ]}
+                      >
+                        <ThemedView
+                          style={[
+                            styles.barFill,
+                            {
+                              backgroundColor: theme.buttonPrimary,
+                              width: `${percent}%`,
+                            },
+                          ]}
+                        />
+                      </ThemedView>
+                      <ThemedText
+                        style={{
+                          width: 40,
+                          textAlign: "right",
+                          color: theme.textPrimary,
+                        }}
+                      >
+                        {percent}%
+                      </ThemedText>
+                    </ThemedView>
+                  );
+                })}
+              </ThemedView>
+            </ThemedView>
+          </ThemedView>
 
-          {/* Edit Mode */}
-          {editingId === r.id && (
-            <View style={styles.editForm}>
+          {/* التقييمات الفردية */}
+          {reviews.map((r) => (
+            <ThemedView
+              key={r.id}
+              style={{
+                borderWidth: 1,
+                padding: 12,
+                marginBottom: 12,
+                borderRadius: 8,
+              }}
+            >
+              <ThemedText
+                style={{ color: theme.textPrimary, fontWeight: "bold" }}
+              >
+                {r.rating} ★
+              </ThemedText>
+              <ThemedText style={{ color: theme.textSecondary }}>
+                {r.review_text}
+              </ThemedText>
+              <ThemedText style={{ color: theme.textSecondary, fontSize: 12 }}>
+                {new Date(r.created_at).toLocaleDateString()}
+              </ThemedText>
+              {r.user_id === user?.id && (
+                <ThemedView
+                  style={{ flexDirection: "row", marginTop: 8, gap: 16 }}
+                >
+                  <Pressable
+                    onPress={() => {
+                      setEditingId(r.id);
+                      setEditingRating(r.rating);
+                      setEditingText(r.review_text);
+                    }}
+                  >
+                    <ThemedText style={{ color: "blue" }}>Edit</ThemedText>
+                  </Pressable>
+                  <Pressable
+                    onPress={() =>
+                      Alert.alert(
+                        "Delete",
+                        "Do you want to delete your review?",
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "Delete",
+                            style: "destructive",
+                            onPress: () => handleDelete(r.id),
+                          },
+                        ]
+                      )
+                    }
+                  >
+                    <ThemedText style={{ color: "red" }}>Delete</ThemedText>
+                  </Pressable>
+                </ThemedView>
+              )}
+              {editingId === r.id && (
+                <ThemedView style={{ marginTop: 8 }}>
+                  <TextInput
+                    value={editingText}
+                    onChangeText={setEditingText}
+                    style={{
+                      borderWidth: 1,
+                      color: theme.textPrimary,
+                      padding: 8,
+                      borderRadius: 6,
+                      marginBottom: 8,
+                    }}
+                    multiline
+                  />
+                  <Pressable
+                    onPress={handleUpdate}
+                    style={{
+                      backgroundColor: theme.buttonPrimary,
+                      padding: 10,
+                      borderRadius: 6,
+                      alignItems: "center",
+                    }}
+                  >
+                    <ThemedText style={{ color: theme.buttonPrimaryText }}>
+                      Save
+                    </ThemedText>
+                  </Pressable>
+                </ThemedView>
+              )}
+            </ThemedView>
+          ))}
+
+          {/* إضافة تقييم لو مفيش تقييم خاص بالمستخدم */}
+          {!userReview && (
+            <>
+              <ThemedText
+                style={[styles.rateTitle, { color: theme.textPrimary }]}
+              >
+                Rate this trip:
+              </ThemedText>
+              <ThemedView style={styles.ratingRow}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Pressable key={n} onPress={() => setSelectedRating(n)}>
+                    <Ionicons
+                      name={selectedRating >= n ? "star" : "star-outline"}
+                      size={28}
+                      color="gold"
+                    />
+                  </Pressable>
+                ))}
+              </ThemedView>
               <TextInput
                 style={[
-                  styles.input,
-                  { color: theme.text, borderColor: theme.border },
+                  styles.textArea,
+                  {
+                    color: theme.textPrimary,
+                    borderColor: theme.textSecondary,
+                  },
                 ]}
-                value={editingText}
-                onChangeText={setEditingText}
-                placeholderTextColor={isDark ? "#888" : "#aaa"}
+                placeholder="Write your review..."
+                value={reviewText}
+                onChangeText={setReviewText}
+                multiline
+                placeholderTextColor={colorScheme === "dark" ? "#888" : "#aaa"}
               />
-              <Pressable
-                onPress={async () => {
-                  await supabase
-                    .from("reviews")
-                    .update({ rating: editingRating, review_text: editingText })
-                    .eq("id", r.id);
-                  setEditingId(null);
-                  fetchReviews(tripInfo.base_trips.id);
-                }}
-                style={styles.saveBtn}
-              >
-                <Text style={styles.saveText}>Save</Text>
+              <Pressable style={styles.submitBtn} onPress={handleSubmit}>
+                <ThemedText style={styles.submitText}>Submit</ThemedText>
               </Pressable>
-            </View>
+            </>
           )}
-        </View>
-      ))}
-
-      {/* Add Review */}
-      <Text style={[styles.rateTitle, { color: theme.text }]}>
-        Rate this trip:
-      </Text>
-      <View style={styles.ratingRow}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <Pressable key={n} onPress={() => setSelectedRating(n)}>
-            <Ionicons
-              name={selectedRating >= n ? "star" : "star-outline"}
-              size={28}
-              color={theme.text}
-            />
-          </Pressable>
-        ))}
-      </View>
-      <TextInput
-        style={[
-          styles.textArea,
-          { color: theme.text, borderColor: theme.border },
-        ]}
-        placeholder="Write your review..."
-        value={reviewText}
-        onChangeText={setReviewText}
-        multiline
-        placeholderTextColor={isDark ? "#888" : "#aaa"}
-      />
-      <Pressable style={styles.submitBtn} onPress={handleSubmit}>
-        <Text style={styles.submitText}>Submit</Text>
-      </Pressable>
-    </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  back: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    gap: 4,
-  },
+  container: { flexGrow: 1, padding: 16 },
   title: { fontSize: 20, fontWeight: "bold" },
   desc: { marginBottom: 16 },
-  reviewCard: {
-    padding: 12,
-    borderWidth: 1,
+  ratingSummary: {
+    padding: 16,
     borderRadius: 8,
-    marginBottom: 12,
-  },
-  reviewHeader: { flexDirection: "row", justifyContent: "space-between" },
-  edit: { color: "blue" },
-  editForm: { marginTop: 8 },
-  input: {
     borderWidth: 1,
-    padding: 8,
-    borderRadius: 4,
-    marginBottom: 8,
+    marginBottom: 20,
   },
-  saveBtn: {
-    backgroundColor: "#28a745",
-    padding: 8,
+  ratingOverall: {
+    flexDirection: "row",
+    marginTop: 12,
+  },
+  ratingRowBar: {
+    flexDirection: "row",
     alignItems: "center",
+    marginBottom: 4,
+    gap: 4,
+  },
+  barBackground: {
+    height: 8,
+    borderRadius: 4,
+    flex: 1,
+  },
+  barFill: {
+    height: 8,
     borderRadius: 4,
   },
-  saveText: { color: "#fff" },
-  rateTitle: { fontSize: 18, fontWeight: "bold", marginTop: 16 },
   ratingRow: { flexDirection: "row", marginVertical: 8, gap: 4 },
   textArea: {
     borderWidth: 1,
@@ -239,6 +395,16 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: "center",
     borderRadius: 6,
+    marginBottom: 40,
+  },
+  backBtn: {
+    backgroundColor: "#007bff",
+    padding: 12,
+    alignItems: "center",
+    borderRadius: 6,
+    marginBottom: 10,
+    width: "25%",
   },
   submitText: { color: "#fff", fontWeight: "bold" },
+  rateTitle: { fontSize: 18, fontWeight: "bold", marginTop: 16 },
 });
