@@ -1,19 +1,16 @@
 import { View, Text, Button } from "react-native";
 import { useRouter } from "expo-router";
 import { ThemeToggleButton } from "@/components/ThemeToggleButton";
-import { useAuth } from "@/hooks/useAuth";
 
 export default function More() {
-const {signOut} = useAuth();
+
 
 
   return (
     <View>
       <ThemeToggleButton />
       <Text>More Options</Text>
-      <Button onPress={() => {signOut()
-        console.log("logout")
-      }} title="Logout"  />
+      <Button title="Logout"  />
     </View>
   );
 }

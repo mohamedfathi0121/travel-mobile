@@ -1,33 +1,49 @@
 import { Tabs } from "expo-router";
-import { Colors } from "@/constants/Colors";
+import { Platform, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { HapticTab } from "@/components/HapticTab";
 import TabBarBackground from "@/components/ui/TabBarBackground";
-import { IconSymbol } from "@/components/ui/IconSymbol";
-import { Platform } from "react-native";
 
 export default function PublicTabs() {
   const colorScheme = useColorScheme();
 
+  // ✅ New Theme Colors
+  const activeTint = colorScheme === "dark" ? "#60a5fa" : "#2563eb"; // Light blue for dark mode, deep blue for light
+  const inactiveTint = colorScheme === "dark" ? "#9ca3af" : "#94a3b8";
+  const tabBarBackground = colorScheme === "dark" ? "#0f172a" : "#f8fafc";
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: true,
+        tabBarActiveTintColor: activeTint,
+        tabBarInactiveTintColor: inactiveTint,
         tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: { position: "absolute" },
-          default: {},
-        }),
+   
+        tabBarStyle: [
+  
+          {
+            backgroundColor: tabBarBackground,
+          },
+          Platform.select({
+            ios: { position: "absolute" },
+            default: {},
+          }),
+        ],
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
+        },
       }}
     >
       <Tabs.Screen
         name="Home"
         options={{
           title: "Home",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
           ),
         }}
       />
@@ -35,8 +51,8 @@ export default function PublicTabs() {
         name="Login"
         options={{
           title: "Login",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.fill" color={color} />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="log-in" size={size} color={color} />
           ),
         }}
       />
@@ -44,11 +60,23 @@ export default function PublicTabs() {
         name="Register"
         options={{
           title: "Register",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.badge.plus" color={color} />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-add" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="More"
+        options={{
+          title: "More",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="ellipsis-horizontal" size={size} color={color} />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+
+
