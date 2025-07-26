@@ -1,10 +1,10 @@
 import { supabase } from '@/lib/supabase';
 import { useAppTheme } from '@/ThemeContext';
 import * as Linking from 'expo-linking';
-
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+
 
 type Trip = {
   id: string;
@@ -28,9 +28,10 @@ type Schedule = {
 };
 
 export default function TripDetailsPage() {
-
+  // Using a hardcoded ID for testing as you requested
   // const { trip_id } = useLocalSearchParams<{ trip_id: string }>();
- const trip_id = '5efa14ae-8350-4836-af3c-ab9ff5a5332f';
+  const trip_id = '5efa14ae-8350-4836-af3c-ab9ff5a5332f'; // Example ID
+
   const [trip, setTrip] = useState<Trip | null>(null);
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [successModal, setSuccessModal] = useState(false);
@@ -42,8 +43,6 @@ export default function TripDetailsPage() {
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-
-  
   const [newBookingId, setNewBookingId] = useState<string | null>(null);
 
   const { theme } = useAppTheme();
@@ -56,51 +55,46 @@ export default function TripDetailsPage() {
     }
   };
 
-
   useEffect(() => {
     if (trip_id) {
       fetchData();
     } else {
-     
-        setIsLoading(false);
-        console.error("Trip ID is missing.");
+      setIsLoading(false);
+      console.error("Trip ID is missing.");
     }
   }, [trip_id]);
 
   async function fetchData() {
     setIsLoading(true);
     try {
-       
-        const { data: baseTrip, error: tripError } = await supabase
-            .from('base_trips')
-            .select('*')
-            .eq('id', trip_id)
-            .single();
+      const { data: baseTrip, error: tripError } = await supabase
+        .from('base_trips')
+        .select('*')
+        .eq('id', trip_id)
+        .single();
+      if (tripError) throw tripError;
+      if (!baseTrip) throw new Error("Trip not found.");
 
-        if (tripError) throw tripError;
-        if (!baseTrip) throw new Error("Trip not found.");
+      const { data: scheduleData, error: scheduleError } = await supabase
+        .from('trip_schedules')
+        .select('id, price')
+        .eq('base_trip_id', baseTrip.id)
+        .limit(1)
+        .maybeSingle();
+      if (scheduleError) throw scheduleError;
 
-        const { data: scheduleData, error: scheduleError } = await supabase
-            .from('trip_schedules')
-            .select('id, price')
-            .eq('base_trip_id', baseTrip.id)
-            .limit(1)
-            .maybeSingle();
-
-        if (scheduleError) throw scheduleError;
-
-        if (scheduleData) {
-            setTrip(baseTrip as Trip);
-            setSchedule(scheduleData as Schedule);
-        } else {
-            throw new Error("Schedule for this trip not found.");
-        }
+      if (scheduleData) {
+        setTrip(baseTrip as Trip);
+        setSchedule(scheduleData as Schedule);
+      } else {
+        throw new Error("Schedule for this trip not found.");
+      }
     } catch (error: any) {
-        console.error("Fetch data error:", error);
-        setModalMessage(error.message);
-        setShowModal(true);
+      console.error("Fetch data error:", error);
+      setModalMessage(error.message);
+      setShowModal(true);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   }
 
@@ -122,92 +116,81 @@ export default function TripDetailsPage() {
 
   const handleBooking = async () => {
     const capacity = getRoomCapacity();
-
     if (singleCount + doubleCount + tripleCount === 0) {
       setModalMessage('Please select at least one room before booking.');
       return setShowModal(true);
     }
-
     if (peopleCount > capacity) {
       setModalMessage(
         `You selected ${peopleCount} people but the selected rooms can hold only ${capacity} person(s).\nPlease add more rooms or reduce number of people.`
       );
       return setShowModal(true);
     }
-
     if (!schedule) return;
 
     try {
-        
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            setModalMessage('Please log in to book a trip.');
-            return setShowModal(true);
-        }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setModalMessage('Please log in to book a trip.');
+        return setShowModal(true);
+      }
+      const bookingData = {
+        user_id: user.id,
+        trip_schedule_id: schedule.id,
+        booking_date: new Date().toISOString(),
+        payment_status: 'pending',
+        ticket_id: `TICK-${Date.now()}`,
+        total_price: { amount: total, currency: 'EGP' },
+        attendees: { members: peopleCount },
+        rooms: {
+          single: singleCount,
+          double: doubleCount,
+          triple: tripleCount,
+        },
+      };
+      const { data: newBooking, error } = await supabase
+        .from('bookings')
+        .insert(bookingData)
+        .select('id')
+        .single();
 
-        const bookingData = {
-            user_id: user.id, 
-            trip_schedule_id: schedule.id,
-            booking_date: new Date().toISOString(),
-            payment_status: 'pending',
-            ticket_id: `TICK-${Date.now()}`,
-            total_price: { amount: total, currency: 'EGP' },
-            attendees: { members: peopleCount },
-            rooms: {
-            single: singleCount,
-            double: doubleCount,
-            triple: tripleCount,
-            },
-        };
-
-        const { data: newBooking, error } = await supabase
-            .from('bookings')
-            .insert(bookingData)
-            .select('id')
-            .single();
-
-        if (error) throw error;
-        if (!newBooking) throw new Error("Booking failed, no ID returned.");
-        
-   
-        setNewBookingId(newBooking.id);
-
-        setSuccessModal(true); 
-
-   
-        setPeopleCount(1);
-        setSingleCount(0);
-        setDoubleCount(0);
-        setTripleCount(0);
-
+      if (error) throw error;
+      if (!newBooking) throw new Error("Booking failed, no ID returned.");
+      
+      setNewBookingId(newBooking.id);
+      setSuccessModal(true);
+      
+      setPeopleCount(1);
+      setSingleCount(0);
+      setDoubleCount(0);
+      setTripleCount(0);
     } catch (err: any) {
-        console.error('Booking error:', err);
-        setModalMessage(`Failed to book. ${err.message}`);
-        setShowModal(true);
+      console.error('Booking error:', err);
+      setModalMessage(`Failed to book. ${err.message}`);
+      setShowModal(true);
     }
   };
-  
+
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
-          <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
   }
 
   if (!trip || !schedule) {
     return (
-        <View style={[styles.container, styles.centered]}>
-            <Text style={[styles.loading, isDark ? styles.loadingDark : styles.loadingLight]}>
-                Could not load trip details. Please go back and try again.
-            </Text>
-        </View>
+      <View style={[styles.container, styles.centered]}>
+        <Text style={[styles.loading, isDark ? styles.loadingDark : styles.loadingLight]}>
+          Could not load trip details. Please go back and try again.
+        </Text>
+      </View>
     );
   }
 
   return (
     <ScrollView style={[styles.container, isDark && styles.darkBg]}>
-      {/* ... (باقي كود العرض JSX لم يتغير) ... */}
       <TouchableOpacity onPress={handleOpenVR} activeOpacity={0.8}>
         <View style={styles.mainVideo}>
           <Image
@@ -221,14 +204,66 @@ export default function TripDetailsPage() {
         </View>
       </TouchableOpacity>
       
-      {/* ... Other sections ... */}
       <View style={styles.section}>
         <Text style={[styles.title, isDark && styles.whiteText]}>{trip.title}</Text>
         <Text style={[styles.location, isDark && styles.lightText]}>📍 {trip.city}, {trip.country}</Text>
         <Text style={styles.rating}>⭐ {trip.average_rating?.toFixed(1)} ({trip.review_count} reviews)</Text>
       </View>
       
-      {/* ... Description, gallery, etc. ... */}
+      {/* ✅ --- بداية الأجزاء المضافة من الكود القديم --- */}
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, isDark && styles.whiteText]}>Description</Text>
+        <Text style={[styles.description, isDark && styles.lightText]}>{trip.description}</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, isDark && styles.whiteText]}>Photo Gallery</Text>
+        <View style={styles.galleryContainer}>
+          <TouchableOpacity onPress={() => setPhotoIndex(prev => Math.max(prev - 1, 0))} style={styles.arrowButton}>
+            <Text style={styles.arrowText}>‹</Text>
+          </TouchableOpacity>
+          <View style={styles.photosRow}>
+            {trip.photo_urls.slice(photoIndex, photoIndex + 3).map((url, index) => (
+              <Image key={index} source={{ uri: url }} style={styles.galleryImage} resizeMode="cover" />
+            ))}
+          </View>
+          <TouchableOpacity onPress={() => setPhotoIndex(prev => (prev + 3 < trip.photo_urls.length ? prev + 1 : prev))} style={styles.arrowButton}>
+            <Text style={styles.arrowText}>›</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Price Included</Text>
+        <Text style={[styles.itemText, isDark && styles.textLight]}>• Accommodation</Text>
+        <Text style={[styles.itemText, isDark && styles.textLight]}>• Meals</Text>
+        <Text style={[styles.itemText, isDark && styles.textLight]}>• Local Transportation</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Price Not Included</Text>
+        <Text style={[styles.itemText, isDark && styles.textLight]}>• Flights</Text>
+        <Text style={[styles.itemText, isDark && styles.textLight]}>• Personal Expenses</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Traveler Reviews</Text>
+        {[5, 4, 3, 2, 1].map((star, index) => {
+          const percentage = [50, 30, 10, 5, 5][index];
+          return (
+            <View key={star} style={styles.reviewRow}>
+              <Text style={[styles.reviewStar, isDark && styles.textLight]}>{star}★</Text>
+              <View style={styles.reviewBarContainer}>
+                <View style={[styles.reviewBar, { width: `${percentage}%` }]} />
+              </View>
+              <Text style={[styles.reviewPercentage, isDark && styles.textLight]}>{percentage}%</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* ✅ --- نهاية الأجزاء المضافة --- */}
 
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, isDark && styles.whiteText]}>Room Prices</Text>
@@ -276,7 +311,6 @@ export default function TripDetailsPage() {
         <Text style={styles.nextButtonText}>Book Now</Text>
       </TouchableOpacity>
       
-      {/* Modal for Success */}
       <Modal visible={successModal} transparent animationType="fade">
         <View style={styles.modalContainer}>
           <View style={[styles.modalContent, isDark && styles.darkModal]}>
@@ -286,9 +320,8 @@ export default function TripDetailsPage() {
             <TouchableOpacity
               onPress={() => {
                 setSuccessModal(false);
-                // ✅ التأكد من تمرير الـ id الذي تم حفظه في الـ state
                 if (newBookingId) {
-                  // ✅ التأكد من أن اسم الملف هو PaymentScreen.tsx
+                  // Make sure your payment screen file is named PaymentScreen.tsx
                   router.push({
                       pathname: '/Payment', 
                       params: { booking_id: newBookingId }
@@ -303,7 +336,6 @@ export default function TripDetailsPage() {
         </View>
       </Modal>
 
-      {/* Modal for Errors */}
       <Modal visible={showModal} transparent animationType="fade">
         <View style={styles.modalContainer}>
           <View style={[styles.modalContent, isDark && styles.darkModal]}>
@@ -318,8 +350,7 @@ export default function TripDetailsPage() {
   );
 }
 
-
-// ... (Styles لم تتغير، مع إضافة centered)
+// ... (The styles object remains the same as your new version's styles)
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 16, backgroundColor: '#ffffff' },
     centered: { justifyContent: 'center', alignItems: 'center' },
@@ -358,4 +389,15 @@ const styles = StyleSheet.create({
     modalText: { fontSize: 16, marginBottom: 20, textAlign: 'center', lineHeight: 24 },
     modalButton: { backgroundColor: '#2563eb', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
     modalButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    textDark: { color: '#fff' },
+  textLight: {
+  
+  color: '#666',
+},
+
+    reviewStar: { width: 28, fontSize: 14, textAlign: 'left' },
+    reviewBarContainer: { flex: 1, height: 8, backgroundColor: '#e5e7eb', borderRadius: 4, marginHorizontal: 8 },
+    reviewBar: { height: '100%', backgroundColor: '#3b82f6', borderRadius: 4 },
+    reviewPercentage: { width: 40, fontSize: 12 },
+    reviewRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
 });

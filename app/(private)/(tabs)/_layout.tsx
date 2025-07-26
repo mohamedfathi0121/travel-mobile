@@ -51,7 +51,6 @@ export default function PrivateTabs() {
           fontWeight: "600",
         },
 
-        // ✅ Top Header Bar shadow & background
         headerStyle: {
           backgroundColor: background,
           shadowColor,
