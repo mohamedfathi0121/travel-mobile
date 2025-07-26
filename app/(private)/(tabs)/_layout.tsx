@@ -40,15 +40,7 @@ export default function PrivateTabs() {
           ),
         }}
       />
-         <Tabs.Screen
-        name="Payment"
-        options={{
-          title: "Payment",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="menu" size={size} color={color} />
-          ),
-        }}
-      />
+    
       
     </Tabs>
   );
