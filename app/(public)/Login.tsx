@@ -1,20 +1,20 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
-  View,
-  TextInput,
+  ActivityIndicator,
   Pressable,
   StyleSheet,
-  ActivityIndicator,
+  TextInput,
+  View,
 } from "react-native";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
+import { z } from "zod";
 
 import { ThemedText } from "@/components/ThemedText";
-import { useThemeColor } from "@/hooks/useThemeColor";
 import { useAuth } from "@/hooks/useAuth";
+import { useThemeColor } from "@/hooks/useThemeColor";
 
 // ✅ Zod Validation Schema
 const loginSchema = z.object({
@@ -117,11 +117,7 @@ export default function LoginScreen() {
           style={[
             styles.input,
             {
-              borderColor: focused
-                ? buttonPrimary
-                : error
-                ? "red"
-                : "#6b7280",
+              borderColor: focused ? buttonPrimary : error ? "red" : "#6b7280",
               color: textColor,
               backgroundColor: cardBg,
             },

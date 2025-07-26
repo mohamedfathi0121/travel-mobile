@@ -1,18 +1,24 @@
 import { Tabs } from "expo-router";
-import { Platform, StyleSheet } from "react-native";
+import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { HapticTab } from "@/components/HapticTab";
-import TabBarBackground from "@/components/ui/TabBarBackground";
+import { useThemeColor } from "@/hooks/useThemeColor";
 
 export default function PublicTabs() {
   const colorScheme = useColorScheme();
 
-  // ✅ New Theme Colors
-  const activeTint = colorScheme === "dark" ? "#60a5fa" : "#2563eb"; // Light blue for dark mode, deep blue for light
+  const activeTint = useThemeColor({}, "buttonPrimary");
+  const background = useThemeColor({}, "background");
+  const secondaryText = useThemeColor({}, "textSecondary");
   const inactiveTint = colorScheme === "dark" ? "#9ca3af" : "#94a3b8";
-  const tabBarBackground = colorScheme === "dark" ? "#0f172a" : "#f8fafc";
+
+  // ✅ Super strong shadow values
+  const shadowColor = "#000";
+  const shadowOpacity = colorScheme === "dark" ? 0.8 : 0.3;
+  const shadowRadius = colorScheme === "dark" ? 10 : 6;
+  const elevation = colorScheme === "dark" ? 20 : 10;
 
   return (
     <Tabs
@@ -21,20 +27,42 @@ export default function PublicTabs() {
         tabBarActiveTintColor: activeTint,
         tabBarInactiveTintColor: inactiveTint,
         tabBarButton: HapticTab,
-   
+
+        // ✅ Bottom Tab Bar (max shadow)
         tabBarStyle: [
-  
           {
-            backgroundColor: tabBarBackground,
+            backgroundColor: background,
+            borderTopWidth: 0,
+            shadowColor,
+            shadowOpacity,
+            shadowRadius,
+            shadowOffset: { width: 0, height: -2 }, // ✅ iOS tweak (shadow above tab)
+            elevation, // ✅ Android max shadow
           },
           Platform.select({
             ios: { position: "absolute" },
             default: {},
           }),
         ],
+
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: "600",
+        },
+
+        // ✅ Top Header Bar (max shadow)
+        headerStyle: {
+          backgroundColor: background,
+          shadowColor,
+          shadowOpacity,
+          shadowRadius,
+          shadowOffset: { width: 0, height: 4 }, // ✅ iOS tweak
+          elevation,
+        },
+        headerTitleStyle: {
+          color: secondaryText,
+          fontSize: 18,
+          fontWeight: "bold",
         },
       }}
     >
@@ -70,13 +98,14 @@ export default function PublicTabs() {
         options={{
           title: "More",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="ellipsis-horizontal" size={size} color={color} />
+            <Ionicons
+              name="ellipsis-horizontal"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
     </Tabs>
   );
 }
-
-
-
