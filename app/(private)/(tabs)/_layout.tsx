@@ -1,9 +1,72 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { HapticTab } from "@/components/HapticTab";
+import { useThemeColor } from "@/hooks/useThemeColor";
 
 export default function PrivateTabs() {
+  const colorScheme = useColorScheme();
+
+  // ✅ Theme-based colors
+  const activeTint = useThemeColor({}, "buttonPrimary");
+  const background = useThemeColor({}, "background");
+  const secondaryText = useThemeColor({}, "textSecondary");
+  const inactiveTint = colorScheme === "dark" ? "#9ca3af" : "#94a3b8";
+
+  // ✅ Strong shadows for dark & light mode
+  const shadowColor = "#000";
+  const shadowOpacity = colorScheme === "dark" ? 0.8 : 0.3;
+  const shadowRadius = colorScheme === "dark" ? 10 : 6;
+  const elevation = colorScheme === "dark" ? 20 : 10;
+
   return (
-    <Tabs screenOptions={{ headerShown: true }}>
+    <Tabs
+      screenOptions={{
+        headerShown: true,
+        tabBarActiveTintColor: activeTint,
+        tabBarInactiveTintColor: inactiveTint,
+        tabBarButton: HapticTab,
+
+        // ✅ Bottom Tab Bar shadow & background
+        tabBarStyle: [
+          {
+            backgroundColor: background,
+            borderTopWidth: 0,
+            shadowColor,
+            shadowOpacity,
+            shadowRadius,
+            shadowOffset: { width: 0, height: -2 },
+            elevation,
+          },
+          Platform.select({
+            ios: { position: "absolute" },
+            default: {},
+          }),
+        ],
+
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
+        },
+
+        // ✅ Top Header Bar shadow & background
+        headerStyle: {
+          backgroundColor: background,
+          shadowColor,
+          shadowOpacity,
+          shadowRadius,
+          shadowOffset: { width: 0, height: 4 },
+          elevation,
+        },
+        headerTitleStyle: {
+          color: secondaryText,
+          fontSize: 18,
+          fontWeight: "bold",
+        },
+      }}
+    >
       <Tabs.Screen
         name="Home"
         options={{
@@ -13,21 +76,22 @@ export default function PrivateTabs() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="SendComplaintMobile"
-        options={{
-          title: "Complaints",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubble-ellipses" size={size} color={color} />
-          ),
-        }}
-      />
+
       <Tabs.Screen
         name="TripPage"
         options={{
           title: "My Trips",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="airplane" size={size} color={color} />
+          ),
+        }}
+      />
+            <Tabs.Screen
+        name="SendComplaintMobile"
+        options={{
+          title: "Complaints",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="megaphone" size={size} color={color} />
           ),
         }}
       />
@@ -40,7 +104,6 @@ export default function PrivateTabs() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="More"
         options={{

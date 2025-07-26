@@ -82,8 +82,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     padding: 20,
     borderRadius: 10,
-    backgroundColor: "transparent", // ThemedView handles background
-    shadowColor: "#000",
+    shadowColor: "#000",    
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
