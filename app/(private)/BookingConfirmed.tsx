@@ -6,6 +6,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { supabase } from '../../lib/supabase';
+import { ThemedView } from '@/components/ThemedView';
 
 
 type LiveBookingData = {
@@ -134,12 +135,12 @@ export default function BookingConfirmedScreen() {
 
     if (!liveBooking) {
         return (
-            <View style={styles.centered}>
+            <ThemedView style={styles.centered}>
                 <ThemedText>Could not find booking details.</ThemedText>
                 <ThemedText style={{color: currentColors.textSecondary, marginTop: 8, textAlign: 'center', paddingHorizontal: 20}}>
                     Please make sure you have pasted a valid booking ID for testing.
                 </ThemedText>
-            </View>
+            </ThemedView>
         );
     }
     
@@ -148,13 +149,11 @@ export default function BookingConfirmedScreen() {
     const imageUri = Array.isArray(liveBooking.trip_schedules?.base_trips?.photo_urls) 
         ? liveBooking.trip_schedules.base_trips.photo_urls[0] 
         : liveBooking.trip_schedules?.base_trips?.photo_urls || 'https://placehold.co/600x400/EEE/31343C?text=Image+Not+Available';
-
-    // This function now safely checks for each room type.
     const getRoomDetailsString = () => {
         if (!liveBooking.rooms) return "N/A";
         
         const roomParts = [];
-        // ✅ FIX: Check if the room count exists and is greater than 0.
+   
         if (liveBooking.rooms.single) {
             roomParts.push(`${liveBooking.rooms.single} Single`);
         }
@@ -169,23 +168,24 @@ export default function BookingConfirmedScreen() {
     };
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-            <View style={styles.header}>
+           <ThemedView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.contentContainer}>
+            <ThemedView style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                      <Ionicons name="arrow-back" size={24} color={currentColors.textPrimary} />
                 </TouchableOpacity>
-            </View>
+            </ThemedView>
 
-            <View style={styles.confirmationHeader}>
+            <ThemedView style={styles.confirmationHeader}>
                 <ThemedText type="title" style={{textAlign: 'center'}}>Your trip is confirmed, {liveBooking.profiles?.display_name || 'there'}!</ThemedText>
                 <ThemedText style={styles.confirmationSubtitle}>
                     Thank you for booking with Wanderlust Travel. Your trip details are below.
                 </ThemedText>
-            </View>
+            </ThemedView>
             
-            <View style={styles.destinationCard}>
+            <ThemedView style={styles.destinationCard}>
                 <Image source={{ uri: imageUri }} style={styles.destinationImage} />
-                <View style={styles.cardTextContainer}>
+                <ThemedView style={styles.cardTextContainer}>
                     <ThemedText type="subtitle" style={styles.destinationTitle}>{liveBooking.trip_schedules?.base_trips?.title}</ThemedText>
                     <ThemedText type="defaultSemiBold" style={styles.destinationDetails}>
                         Oct 28 - Dec 30 • {liveBooking.attendees.members} Guests
@@ -193,36 +193,37 @@ export default function BookingConfirmedScreen() {
                     <ThemedText type="defaultSemiBold" style={styles.destinationPrice}>
                         Total: ${liveBooking.total_price.amount}
                     </ThemedText>
-                </View>
-            </View>
+                </ThemedView>
+            </ThemedView>
 
-            <View style={styles.detailsSection}>
+            <ThemedView style={styles.detailsSection}>
                 <ThemedText type="subtitle">Booking Details</ThemedText>
-                <View style={styles.detailRow}>
+                <ThemedView style={styles.detailRow}>
                     <ThemedText type="default">Confirmation Number</ThemedText>
                     <ThemedText type="defaultSemiBold">{confirmationNumber}</ThemedText>
-                </View>
-                 <View style={styles.detailRow}>
+                </ThemedView>
+                < ThemedView style={styles.detailRow}>
                     <ThemedText type="default">Total Members</ThemedText>
                     <ThemedText type="defaultSemiBold">{liveBooking.attendees.members}</ThemedText>
-                </View>
-                 <View style={styles.detailRow}>
+                </ThemedView>
+                 <ThemedView style={styles.detailRow}>
                     <ThemedText type="default">Rooms</ThemedText>
                     <ThemedText type="defaultSemiBold">{getRoomDetailsString()}</ThemedText>
-                </View>
-            </View>
+                </ThemedView>
+            </ThemedView>
 
-            <View style={styles.qrCodeContainer}>
+            <ThemedView style={styles.qrCodeContainer}>
                 <ThemedText type="subtitle" style={styles.qrTitle}>QR Code</ThemedText>
-                <View style={styles.qrCodeBox}>
+                <ThemedView style={styles.qrCodeBox}>
                    <QRCode
                         value={confirmationNumber}
                         size={180}
                         backgroundColor={currentColors.background}
                         color={currentColors.textPrimary}
                     />
-                </View>
-            </View>
+                </ThemedView>
+            </ThemedView>
         </ScrollView>
+        </ThemedView>
     );
 }

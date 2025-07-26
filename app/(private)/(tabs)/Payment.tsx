@@ -50,9 +50,12 @@ const styles = StyleSheet.create({
 });
 
 export default function PaymentScreen() {
-    const navigation = useNavigation();
+     const navigation = useNavigation();
     const params = useLocalSearchParams();
     
+    // ✅ 1. استقبال كل بيانات الحجز من الصفحة السابقة
+    const { trip_id, singleRooms, doubleRooms, tripleRooms, members } = params;
+
     const theme = useColorScheme() ?? 'light';
     const isDark = theme === 'dark';
     
@@ -63,52 +66,53 @@ export default function PaymentScreen() {
     const [isBooking, setIsBooking] = useState(false);
 
     useEffect(() => {
-        const tripScheduleId = params.trip_id || '06a300df-6889-4d31-b21a-cd63508e8ce9'; 
         const fetchTripDetails = async () => {
-             if (!tripScheduleId) {
-                Alert.alert("Error", "Trip ID is missing.");
-                setIsLoadingTrip(false);
-                return;
-            }
-            try {
-                const { data: scheduleData, error: scheduleError } = await supabase.from('trip_schedules').select('*, base_trip_id').eq('id', tripScheduleId).single();
-                if (scheduleError) throw scheduleError;
-                if (!scheduleData) throw new Error("Trip schedule not found.");
-                const baseTripId = scheduleData.base_trip_id;
-                const { data: baseTripData, error: baseTripError } = await supabase.from('base_trips').select('*').eq('id', baseTripId).single();
-                if (baseTripError) throw baseTripError;
-                if (!baseTripData) throw new Error("Base trip not found.");
-                const combinedData = { ...scheduleData, base_trips: baseTripData };
-                setTrip(combinedData as TripData);
-            } catch (error: any) {
-                console.error("Failed to fetch trip details:", error);
-                Alert.alert("Error", `Could not load trip details: ${error.message}`);
-            } finally {
-                setIsLoadingTrip(false);
-            }
+             if (!trip_id) {
+                 Alert.alert("Error", "Trip ID is missing.");
+                 setIsLoadingTrip(false);
+                 return;
+             }
+             try {
+                // الكود الحالي لجلب بيانات الرحلة صحيح ويعتمد على trip_id
+                 const { data: scheduleData, error: scheduleError } = await supabase.from('trip_schedules').select('*, base_trip_id').eq('id', trip_id).single();
+                 if (scheduleError) throw scheduleError;
+                 if (!scheduleData) throw new Error("Trip schedule not found.");
+
+                 const { data: baseTripData, error: baseTripError } = await supabase.from('base_trips').select('*').eq('id', scheduleData.base_trip_id).single();
+                 if (baseTripError) throw baseTripError;
+
+                 const combinedData = { ...scheduleData, base_trips: baseTripData };
+                 setTrip(combinedData as TripData);
+             } catch (error: any) {
+                 Alert.alert("Error", `Could not load trip details: ${error.message}`);
+             } finally {
+                 setIsLoadingTrip(false);
+             }
         };
         fetchTripDetails();
-    }, [params.trip_id]);
+    }, [trip_id]);
 
     const handlePayment = async () => {
-        if (!trip) {
-            Alert.alert("Error", "Trip data is not available.");
-            return;
-        }
+        if (!trip) return;
+
         const testUserId = 'bfb39f6b-b563-4ed2-974b-af30f1a53d76';
         setIsBooking(true);
         try {
+            
             const bookingDetails = {
                 trip_schedule_id: trip.id,
                 user_id: testUserId,
-                booking_info: { singleRooms: 1, doubleRooms: 0, tripleRooms: 0, members: 1 }
+                booking_info: { 
+                    singleRooms: Number(singleRooms || 0), 
+                    doubleRooms: Number(doubleRooms || 0), 
+                    tripleRooms: Number(tripleRooms || 0), 
+                    members: Number(members || 1) 
+                }
             };
             const { data, error } = await supabase.functions.invoke('create-checkout-session', { body: bookingDetails });
             if (error) throw new Error(error.message);
             if (data.url) await WebBrowser.openBrowserAsync(data.url);
-            else throw new Error("Could not retrieve payment URL.");
         } catch (error: any) {
-            console.error("Payment Error:", error);
             Alert.alert('Error', `Could not start the payment process: ${error.message}`);
         } finally {
             setIsBooking(false);
