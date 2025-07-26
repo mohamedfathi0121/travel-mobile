@@ -1,16 +1,16 @@
 import { View, Text, Button } from "react-native";
 import { useRouter } from "expo-router";
 import { ThemeToggleButton } from "@/components/ThemeToggleButton";
+import { ThemedView } from "@/components/ThemedView";
 
 export default function More() {
 
 
 
   return (
-    <View>
+    <ThemedView style={{ flex: 1 }}>
       <ThemeToggleButton />
-      <Text>More Options</Text>
-      <Button title="Logout"  />
-    </View>
+
+    </ThemedView>
   );
 }

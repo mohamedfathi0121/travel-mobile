@@ -1,12 +1,17 @@
+import { useThemeColor } from "@/hooks/useThemeColor";
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 interface DotsIndicatorProps {
   currentStep: number;
   totalSteps: number;
 }
 
-export default function DotsIndicator({ currentStep, totalSteps }: DotsIndicatorProps) {
+export default function DotsIndicator({
+  currentStep,
+  totalSteps,
+}: DotsIndicatorProps) {
+  const dotsColors = useThemeColor({}, "buttonPrimary");
   return (
     <View style={styles.container}>
       {Array.from({ length: totalSteps }).map((_, index) => (
@@ -14,7 +19,7 @@ export default function DotsIndicator({ currentStep, totalSteps }: DotsIndicator
           key={index}
           style={[
             styles.dot,
-            currentStep === index + 1 && styles.activeDot,
+            currentStep === index + 1 && { backgroundColor: dotsColors },
           ]}
         />
       ))}

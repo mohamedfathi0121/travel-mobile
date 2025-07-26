@@ -4,15 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { HapticTab } from "@/components/HapticTab";
-import TabBarBackground from "@/components/ui/TabBarBackground";
+import { useThemeColor } from "@/hooks/useThemeColor";
 
 export default function PublicTabs() {
   const colorScheme = useColorScheme();
 
   // ✅ New Theme Colors
-  const activeTint = colorScheme === "dark" ? "#60a5fa" : "#2563eb"; // Light blue for dark mode, deep blue for light
+  const activeTint    = useThemeColor({}, "buttonPrimary");
   const inactiveTint = colorScheme === "dark" ? "#9ca3af" : "#94a3b8";
-  const tabBarBackground = colorScheme === "dark" ? "#0f172a" : "#f8fafc";
 
   return (
     <Tabs
@@ -24,9 +23,7 @@ export default function PublicTabs() {
    
         tabBarStyle: [
   
-          {
-            backgroundColor: tabBarBackground,
-          },
+       
           Platform.select({
             ios: { position: "absolute" },
             default: {},

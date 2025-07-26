@@ -67,7 +67,6 @@ export default function RegisterPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "transparent", // ThemedView handles background automatically
   },
   scrollContent: {
     flexGrow: 1,
