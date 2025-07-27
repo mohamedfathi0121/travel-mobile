@@ -48,7 +48,7 @@ const TripCard: React.FC<TripCardProps> = ({
           ]}
         >
           <Text style={styles.buttonText}>
-            {showReviewButton ? "Review ⭐" : "Pay Now 💳"}
+            {showReviewButton ? "Review ⭐" : "Ticket 📜"}
           </Text>
         </TouchableOpacity>
       </View>
