@@ -1,103 +1,114 @@
-// ✅ TripCard.tsx (Dark/Light Theme)
 import React from "react";
-import {
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useColorScheme,
-} from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
 
 interface TripCardProps {
   title?: string;
   date?: string;
   image?: string;
   showReviewButton?: boolean;
-  onReviewClick?: () => void;
+  id: string; // Trip schedule ID
+  ticketId?: string;
 }
 
-const TripCard: React.FC<TripCardProps> = ({
+export default function TripCard({
   title = "Untitled Trip",
   date = "Unknown Date",
   image,
   showReviewButton = false,
-  onReviewClick,
-}) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const defaultImage = require("../assets/images/a.jpg"); // Default image path
+  id,
+  ticketId,
+}: TripCardProps) {
+  const router = useRouter();
+  const defaultImage = require("../assets/images/a.jpg"); // ✅ Use require for local images
+
+  const handlePress = () => {
+    if (showReviewButton) {
+      router.push(`/Trip/${id}`);
+    } else if (ticketId) {
+      router.push(`/(private)/ticket/${ticketId}`);
+    }
+  };
+
+  const buttonText = showReviewButton
+    ? "Review ⭐"
+    : ticketId
+    ? "Ticket 🎫"
+    : "No Ticket";
 
   return (
-    <View
-      style={[styles.card, { backgroundColor: isDark ? "#1E1E1E" : "#fff" }]}
-    >
-      <View style={styles.infoSection}>
-        <Text style={[styles.title, { color: isDark ? "#fff" : "#222" }]}>
-          {title}
-        </Text>
-        <Text style={[styles.date, { color: isDark ? "#ccc" : "#666" }]}>
-          {date}
-        </Text>
+    <View style={styles.card}>
+      <View style={styles.infoContainer}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.date}>{date}</Text>
 
         <TouchableOpacity
-          onPress={showReviewButton ? onReviewClick : undefined}
           style={[
             styles.button,
-            showReviewButton ? styles.reviewBtn : styles.payBtn,
+            showReviewButton
+              ? styles.reviewButton
+              : ticketId
+              ? styles.ticketButton
+              : styles.disabledButton,
           ]}
+          disabled={!showReviewButton && !ticketId}
+          onPress={handlePress}
         >
-          <Text style={styles.buttonText}>
-            {showReviewButton ? "Review ⭐" : "Ticket 📜"}
-          </Text>
+          <Text style={styles.buttonText}>{buttonText}</Text>
         </TouchableOpacity>
       </View>
+
       <Image
         source={image ? { uri: image } : defaultImage}
         style={styles.image}
         resizeMode="cover"
+        onError={() => (image = defaultImage as unknown as string)}
       />
     </View>
   );
-};
-
-export default TripCard;
+}
 
 const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+    padding: 12,
+    marginBottom: 12,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: "#fff",
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
-  infoSection: {
+  infoContainer: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 10,
   },
   title: {
     fontSize: 16,
     fontWeight: "bold",
+    color: "#222",
   },
   date: {
     fontSize: 14,
-    marginVertical: 6,
+    color: "#666",
+    marginBottom: 8,
   },
   button: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 6,
   },
-  reviewBtn: {
+  reviewButton: {
     backgroundColor: "#16a34a",
   },
-  payBtn: {
-    backgroundColor: "#333",
+  ticketButton: {
+    backgroundColor: "#2563eb",
+  },
+  disabledButton: {
+    backgroundColor: "#9ca3af",
   },
   buttonText: {
     color: "#fff",
@@ -105,8 +116,8 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   image: {
-    width: 100,
-    height: 100,
+    width: 90,
+    height: 90,
     borderRadius: 8,
   },
 });

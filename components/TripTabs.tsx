@@ -1,45 +1,26 @@
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useColorScheme,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 
-const tabs = ["Approved", "Completed"];
+const tabs = ["On Going", "Completed"];
 
 interface TripTabsProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
 }
 
-const TripTabs: React.FC<TripTabsProps> = ({ currentTab, setCurrentTab }) => {
-  const theme = useColorScheme();
-  const isDark = theme === "dark";
-
+export default function TripTabs({ currentTab, setCurrentTab }: TripTabsProps) {
   return (
-    <View style={styles.container}>
+    <View style={styles.tabContainer}>
       {tabs.map((tab) => {
-        const isActive = tab === currentTab;
+        const isActive = currentTab === tab;
         return (
           <TouchableOpacity
             key={tab}
-            style={[
-              styles.tab,
-              isActive && { borderColor: isDark ? "#fff" : "#000" },
-            ]}
             onPress={() => setCurrentTab(tab)}
+            style={[styles.tab, isActive && styles.activeTab]}
           >
             <Text
-              style={[
-                styles.tabText,
-                { color: isDark ? "#aaa" : "#888" },
-                isActive && {
-                  color: isDark ? "#fff" : "#000",
-                  fontWeight: "600",
-                },
-              ]}
+              style={[styles.tabText, isActive && styles.activeTabText]}
             >
               {tab}
             </Text>
@@ -48,24 +29,31 @@ const TripTabs: React.FC<TripTabsProps> = ({ currentTab, setCurrentTab }) => {
       })}
     </View>
   );
-};
-
-export default TripTabs;
+}
 
 const styles = StyleSheet.create({
-  container: {
+  tabContainer: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 16,
+    justifyContent: "center",
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
   },
   tab: {
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginRight: 8,
+    paddingHorizontal: 16,
     borderBottomWidth: 2,
-    borderColor: "transparent",
+    borderBottomColor: "transparent",
+  },
+  activeTab: {
+    borderBottomColor: "#2563eb",
   },
   tabText: {
+    color: "#666",
     fontSize: 14,
+    fontWeight: "500",
+  },
+  activeTabText: {
+    color: "#2563eb",
   },
 });

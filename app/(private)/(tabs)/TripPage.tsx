@@ -1,35 +1,38 @@
-import { useNavigation } from "@react-navigation/native";
-import { useRouter } from "expo-router"; // ⬅️ الاستيراد الصحيح
+import TripCard from "@/components/TripCard";
+import TripTabs from "@/components/TripTabs";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, useColorScheme } from "react-native";
-import { useAuth } from "../../../hooks/useAuth";
-import { supabase } from "../../../lib/supabase";
-import TripCard from "../../../components/TripCard";
-import TripTabs from "../../../components/TripTabs";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { ThemedView } from "@/components/ThemedView";
+import { ThemedText } from "@/components/ThemedText";
 
 interface Trip {
   id: string;
   title: string;
   date: string;
-  status: string;
   image: string;
+  status: "On Going" | "Completed";
+  ticketId?: string;
 }
 
-const TripPage = () => {
-  const router = useRouter(); // ⬅️ تعريف router
-  const navigation = useNavigation();
+export default function TripPage() {
   const { user } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [currentTab, setCurrentTab] = useState("Approved");
-
-  const theme = useColorScheme();
-  const isDark = theme === "dark";
+  const [currentTab, setCurrentTab] = useState<"On Going" | "Completed">("On Going");
 
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return {
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      date: date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      time: date.toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
@@ -39,105 +42,115 @@ const TripPage = () => {
 
       const { data: bookings, error } = await supabase
         .from("bookings")
-        .select(
-          `
+        .select(`
           id,
+          ticket_id,
           trip_schedules (
             id,
             start_date,
             end_date,
-            status,
-            location_url,
             base_trips (
               id,
               title,
-              description,
-              photo_urls,
-              city
+              photo_urls
             )
           )
-        `
-        )
+        `)
         .eq("user_id", user.id);
 
-      if (error) return console.error(error);
+      if (error) {
+        console.error("Error fetching bookings:", error.message);
+        return;
+      }
 
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-      const mapped = bookings.map((b: any) => {
-        const trip = b.trip_schedules;
-        const base = trip.base_trips;
-        const start = new Date(trip.start_date);
-        const end = new Date(trip.end_date);
+      const mappedTrips: Trip[] = bookings
+        .filter((b: any) => b.trip_schedules)
+        .map((booking: any) => {
+          const trip = booking.trip_schedules;
+          const baseTrip = trip?.base_trips;
 
-        let status = "Not Approved";
-        if (trip.status === "cancelled") status = "Cancelled";
-        else if (
-          (trip.status === "open" || trip.status === "closed") &&
-          end < today
-        )
-          status = "Completed";
-        else if (trip.status === "open" && start > today) status = "Approved";
-        else if (trip.status === "full") status = "Not Approved";
+          const endDate = new Date(trip?.end_date);
+          endDate.setHours(0, 0, 0, 0);
 
-        const startFormatted = formatDateTime(trip.start_date);
-        const endFormatted = formatDateTime(trip.end_date);
+          const status: "On Going" | "Completed" =
+            endDate < today ? "Completed" : "On Going";
 
-        return {
-          id: trip.id,
-          title: base?.title || "Untitled",
-          date: `${startFormatted.date} at ${startFormatted.time}\n→ ${endFormatted.date} at ${endFormatted.time}`,
-          image: base?.photo_urls?.[0] || "",
-          status,
-        };
-      });
+          const startFormatted = formatDateTime(trip.start_date);
+          const endFormatted = formatDateTime(trip.end_date);
 
-      setTrips(mapped);
+          return {
+            id: trip.id,
+            status,
+            title: baseTrip?.title || "Untitled",
+            date: `${startFormatted.date} at ${startFormatted.time}\n→ ${endFormatted.date} at ${endFormatted.time}`,
+            image: baseTrip?.photo_urls?.[0] || "",
+            ticketId: booking.ticket_id || undefined,
+          };
+        });
+
+      setTrips(mappedTrips);
     };
 
     fetchTrips();
   }, [user?.id]);
 
-  const filteredTrips = trips.filter((t) => t.status === currentTab);
+  const filteredTrips = trips.filter((trip) => trip.status === currentTab);
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: isDark ? "#111" : "#fff" }]}
-    >
-      <Text style={[styles.heading, { color: isDark ? "#fff" : "#000" }]}>
-        My Trips
-      </Text>
-      <TripTabs currentTab={currentTab} setCurrentTab={setCurrentTab} />
-      {filteredTrips.length > 0 ? (
-        filteredTrips.map((trip) => (
-          <TripCard
-            key={trip.id}
-            title={trip.title}
-            date={trip.date}
-            image={trip.image}
-            showReviewButton={currentTab === "Completed"}
-            onReviewClick={() => router.push(`/TripInfo?id=${trip.id}`)}
-          />
-        ))
-      ) : (
-        <Text style={{ color: isDark ? "#aaa" : "#000" }}>
-          No {currentTab.toLowerCase()} trips found.
-        </Text>
-      )}
-    </ScrollView>
-  );
-};
+    <ThemedView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ThemedText type="title" style={styles.heading}>
+          My Trips
+        </ThemedText>
 
-export default TripPage;
+        <View style={styles.tabsContainer}>
+          <TripTabs currentTab={currentTab} setCurrentTab={setCurrentTab} />
+        </View>
+
+        {filteredTrips.length > 0 ? (
+          filteredTrips.map((trip) => (
+            <TripCard
+              key={trip.id}
+              title={trip.title}
+              date={trip.date}
+              image={trip.image}
+              showReviewButton={currentTab === "Completed"}
+              id={trip.id}
+              ticketId={trip.ticketId}
+            />
+          ))
+        ) : (
+          <ThemedText type="defaultSemiBold" style={styles.emptyText}>
+            No {currentTab.toLowerCase()} trips found.
+          </ThemedText>
+        )}
+      </ScrollView>
+    </ThemedView>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
     flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    flexGrow: 1,
   },
   heading: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 16,
+    textAlign: "left",
+  },
+  tabsContainer: {
+    marginBottom: 16,
+  },
+  emptyText: {
+    textAlign: "center",
+    marginTop: 20,
   },
 });
