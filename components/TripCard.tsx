@@ -1,6 +1,8 @@
-import React from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import React from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ThemedView } from "./ThemedView";
+import { ThemedText } from "./ThemedText";
 
 interface TripCardProps {
   title?: string;
@@ -24,7 +26,7 @@ export default function TripCard({
 
   const handlePress = () => {
     if (showReviewButton) {
-      router.push(`/Trip/${id}`);
+      router.push(`/(private)/trip/${id}`);
     } else if (ticketId) {
       router.push(`/(private)/ticket/${ticketId}`);
     }
@@ -33,14 +35,14 @@ export default function TripCard({
   const buttonText = showReviewButton
     ? "Review ⭐"
     : ticketId
-    ? "Ticket 🎫"
-    : "No Ticket";
+      ? "Ticket 🎫"
+      : "No Ticket";
 
   return (
-    <View style={styles.card}>
+    <ThemedView style={[styles.card,{borderColor: "#ffffff", borderWidth: 1}]}>
       <View style={styles.infoContainer}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.date}>{date}</Text>
+        <ThemedText >{title}</ThemedText>
+        <ThemedText style={styles.date}>{date}</ThemedText>
 
         <TouchableOpacity
           style={[
@@ -48,8 +50,8 @@ export default function TripCard({
             showReviewButton
               ? styles.reviewButton
               : ticketId
-              ? styles.ticketButton
-              : styles.disabledButton,
+                ? styles.ticketButton
+                : styles.disabledButton,
           ]}
           disabled={!showReviewButton && !ticketId}
           onPress={handlePress}
@@ -64,7 +66,7 @@ export default function TripCard({
         resizeMode="cover"
         onError={() => (image = defaultImage as unknown as string)}
       />
-    </View>
+    </ThemedView>
   );
 }
 
@@ -76,7 +78,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     borderRadius: 12,
-    backgroundColor: "#fff",
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -89,11 +90,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#222",
+
   },
   date: {
     fontSize: 14,
-    color: "#666",
+
     marginBottom: 8,
   },
   button: {
@@ -103,17 +104,24 @@ const styles = StyleSheet.create({
   },
   reviewButton: {
     backgroundColor: "#16a34a",
+    justifyContent: "center",
+    alignItems: "center",
   },
   ticketButton: {
     backgroundColor: "#2563eb",
+        justifyContent: "center",
+    alignItems: "center",
   },
   disabledButton: {
     backgroundColor: "#9ca3af",
+        justifyContent: "center",
+    alignItems: "center",
   },
   buttonText: {
-    color: "#fff",
     fontSize: 14,
     fontWeight: "500",
+    color: "#fff",
+    
   },
   image: {
     width: 90,

@@ -1,229 +1,217 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View, Image, TextInput, TouchableOpacity, ScrollView, Switch, Alert, useColorScheme, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Image, TouchableOpacity, ScrollView, Alert, useColorScheme, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { supabase } from '../../lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
+import { ThemedView } from '@/components/ThemedView';
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-type TripData = {
+// The data structure this screen expects to receive
+type BookingDetailsData = {
     id: string; 
-    price: {
-        price_single: number;
-        price_double: number;
-        price_triple: number;
+    user_id: string;
+    rooms: {
+        single: number;
+        double: number;
+        triple: number;
     };
-    base_trips: {
-        title: string;
-        photo_urls: string | string[];
+    attendees: {
+        members: number;
+    };
+    trip_schedules: {
+        id: string;
+        price: {
+            price_single: number;
+            price_double: number;
+            price_triple: number;
+        };
+        base_trips: {
+            title: string;
+            photo_urls: string | string[];
+        }
     }
 };
-
-type PaymentMethod = 'credit-card' | 'paypal';
 
 export default function PaymentScreen() {
     const navigation = useNavigation();
     const params = useLocalSearchParams();
-
-    const [trip, setTrip] = useState<TripData | null>(null);
-    const [isLoadingTrip, setIsLoadingTrip] = useState(true);
+    const background = useThemeColor({ }, 'background');
     
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('credit-card');
-    const [saveCard, setSaveCard] = useState<boolean>(false);
-    const [isBooking, setIsBooking] = useState(false);
+
+    const [booking, setBooking] = useState<BookingDetailsData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [calculatedTotalPrice, setCalculatedTotalPrice] = useState(0);
 
     const theme = useColorScheme() ?? 'light';
     const currentColors = Colors[theme];
 
     useEffect(() => {
-        const tripScheduleId = params.trip_id || '06a300df-6889-4d31-b21a-cd63508e8ce9'; 
-
-        const fetchTripDetails = async () => {
-            if (!tripScheduleId) {
-                Alert.alert("Error", "Trip ID is missing.");
-                setIsLoadingTrip(false);
-                return;
-            }
-
+        const bookingDataString = params.bookingData;
+        
+        if (bookingDataString && typeof bookingDataString === 'string') {
             try {
-                
-                const { data: scheduleData, error: scheduleError } = await supabase
-                    .from('trip_schedules')
-                    .select('*, base_trip_id')
-                    .eq('id', tripScheduleId)
-                    .single();
-                
-                if (scheduleError) throw scheduleError;
-                if (!scheduleData) throw new Error("Trip schedule not found.");
+                // Parse the data object passed from the previous screen
+                const bookingDataObject = JSON.parse(bookingDataString);
+                setBooking(bookingDataObject as BookingDetailsData);
 
-                const baseTripId = scheduleData.base_trip_id;
+                // Calculate total price from the received data
+                const { rooms, trip_schedules } = bookingDataObject;
+                const total = (trip_schedules.price.price_single || 0) * (rooms.single || 0) +
+                              (trip_schedules.price.price_double || 0) * (rooms.double || 0) +
+                              (trip_schedules.price.price_triple || 0) * (rooms.triple || 0);
+                setCalculatedTotalPrice(total);
 
-                const { data: baseTripData, error: baseTripError } = await supabase
-                    .from('base_trips')
-                    .select('*')
-                    .eq('id', baseTripId)
-                    .single();
-
-                if (baseTripError) throw baseTripError;
-                if (!baseTripData) throw new Error("Base trip not found.");
-
-                const combinedData = {
-                    ...scheduleData,
-                    base_trips: baseTripData, 
-                };
-
-                setTrip(combinedData as TripData);
-
-            } catch (error: any) {
-                console.error("Failed to fetch trip details:", error);
-                Alert.alert("Error", `Could not load trip details: ${error.message}`);
-            } finally {
-                setIsLoadingTrip(false);
+            } catch (e) {
+                console.error("Failed to parse booking data from params:", e);
+                Alert.alert("Error", "Could not process booking details.");
             }
-        };
-
-        fetchTripDetails();
-    }, [params.trip_id]);
-
+        } else {
+            Alert.alert("Error", "Booking details were not provided.");
+        }
+        setIsLoading(false);
+    }, [params.bookingData]);
 
     const handlePayment = async () => {
-        if (!trip) {
-            Alert.alert("Error", "Trip data is not available.");
+        if (!booking) {
+            Alert.alert("Error", "Booking data is not available.");
             return;
         }
         
-        const testUserId = 'bfb39f6b-b563-4ed2-974b-af30f1a53d76'; // For testing
-        setIsBooking(true);
-
+        setIsProcessingPayment(true);
         try {
-            const bookingDetails = {
-                trip_schedule_id: trip.id,
-                user_id: testUserId,
+            const payloadForFunction = {
+                trip_schedule_id: booking.trip_schedules.id,
+                user_id: booking.user_id,
                 booking_info: {
-                    singleRooms: 1, doubleRooms: 0, tripleRooms: 0, members: 1,
+                    singleRooms: booking.rooms.single,
+                    doubleRooms: booking.rooms.double,
+                    tripleRooms: booking.rooms.triple,
+                    members: booking.attendees.members,
                 }
             };
-
             const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-                body: bookingDetails,
+                body: payloadForFunction,
             });
 
             if (error) throw new Error(error.message);
-            if (data.url) await WebBrowser.openBrowserAsync(data.url);
-            else throw new Error("Could not retrieve payment URL.");
-
+            if (data.url) {
+                await WebBrowser.openBrowserAsync(data.url);
+            } else {
+                throw new Error("Could not retrieve payment URL.");
+            }
         } catch (error: any) {
             console.error("Payment Error:", error);
             Alert.alert('Error', `Could not start the payment process: ${error.message}`);
         } finally {
-            setIsBooking(false);
+            setIsProcessingPayment(false);
         }
     };
     
-    const styles = StyleSheet.create({
-        container: { flex: 1, backgroundColor: currentColors.background },
-        contentContainer: { padding: 20, paddingBottom: 50, flexGrow: 1 },
-        header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20, position: 'relative' },
-        backButton: { position: 'absolute', left: 0, zIndex: 1 },
-        sectionTitle: { marginTop: 20, marginBottom: 10 },
-        tripCard: { backgroundColor: currentColors.input, borderRadius: 12, padding: 10, flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-        tripImage: { width: 60, height: 60, borderRadius: 8, backgroundColor: '#eee' },
-        tripName: { marginLeft: 15, flex: 1 },
-        priceSection: { marginTop: 10 },
-        priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-        divider: { height: 1, backgroundColor: currentColors.input, marginVertical: 15 },
-        paymentOption: { flexDirection: 'row', alignItems: 'center', padding: 15, borderWidth: 1, borderColor: currentColors.input, borderRadius: 12, marginBottom: 10 },
-        selectedOption: { borderColor: currentColors.buttonPrimary, borderWidth: 1.5 },
-        paymentText: { flex: 1, marginLeft: 15, fontSize: 16 },
-        form: { marginTop: 20 },
-        input: { backgroundColor: currentColors.input, paddingHorizontal: 15, paddingVertical: 12, borderRadius: 8, fontSize: 16, color: currentColors.textPrimary, marginBottom: 10 },
-        inputRow: { flexDirection: 'row', justifyContent: 'space-between' },
-        inputHalf: { width: '48%' },
-        saveCardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 20 },
-        payButton: { backgroundColor: currentColors.buttonPrimary, padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 'auto', opacity: isBooking ? 0.7 : 1 },
-        payButtonText: { color: currentColors.buttonPrimaryText, fontSize: 18, fontWeight: 'bold' },
-        centered: { flex: 1, justifyContent: 'center', alignItems: 'center' }
-    });
-
-    if (isLoadingTrip) {
+    if (isLoading) {
         return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color={currentColors.buttonPrimary} />
-            </View>
+            <ThemedView style={styles.centered}>
+                <ActivityIndicator size="large" color={currentColors.tint} />
+            </ThemedView>
         );
     }
 
-    if (!trip) {
+    if (!booking) {
         return (
-            <View style={styles.centered}>
-                <ThemedText>Trip not found.</ThemedText>
-            </View>
+            <ThemedView style={styles.centered}>
+                <ThemedText>Booking details not found.</ThemedText>
+            </ThemedView>
         );
     }
     
-    const totalPrice = trip.price.price_single;
-    const imageUri = Array.isArray(trip.base_trips.photo_urls)
-        ? trip.base_trips.photo_urls[0]
-        : trip.base_trips.photo_urls || 'https://placehold.co/60x60/EEE/31343C?text=...';
+    const tripTitle = booking.trip_schedules.base_trips.title;
+    const photoUrls = booking.trip_schedules.base_trips.photo_urls;
+    const imageUri = Array.isArray(photoUrls) && photoUrls.length > 0
+        ? photoUrls[0]
+        : 'https://placehold.co/60x60/EEE/31343C?text=...';
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={currentColors.textPrimary} />
+     <SafeAreaView style={[styles.container, { backgroundColor: background }]}>
+           <View style={styles.container}>
+            <ScrollView contentContainerStyle={styles.contentContainer}>
+                <ThemedView style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24}  />
+                    </TouchableOpacity>
+                    <ThemedText type="title">Confirm Payment</ThemedText>
+                </ThemedView>
+
+                <ThemedText type="subtitle" style={styles.sectionTitle}>Your trip</ThemedText>
+                <ThemedView style={[styles.tripCard, ]}>
+                    <Image source={{ uri: imageUri }} style={styles.tripImage} />
+                    <ThemedText type="defaultSemiBold" style={styles.tripName}>{tripTitle}</ThemedText>
+                </ThemedView>
+
+                <ThemedView style={styles.priceSection}>
+                    <ThemedText type="subtitle" style={styles.sectionTitle}>Price summary</ThemedText>
+
+                    {booking.rooms.single > 0 && (
+                        <ThemedView style={styles.priceRow}>
+                            <ThemedText>Single Rooms ({booking.rooms.single})</ThemedText>
+                            <ThemedText type="defaultSemiBold">${(booking.trip_schedules.price.price_single || 0) * booking.rooms.single}</ThemedText>
+                        </ThemedView>
+                    )}
+                    {booking.rooms.double > 0 && (
+                        <ThemedView style={styles.priceRow}>
+                            <ThemedText>Double Rooms ({booking.rooms.double})</ThemedText>
+                            <ThemedText type="defaultSemiBold">${(booking.trip_schedules.price.price_double || 0) * booking.rooms.double}</ThemedText>
+                        </ThemedView>
+                    )}
+                    {booking.rooms.triple > 0 && (
+                        <ThemedView style={styles.priceRow}>
+                            <ThemedText>Triple Rooms ({booking.rooms.triple})</ThemedText>
+                            <ThemedText type="defaultSemiBold">${(booking.trip_schedules.price.price_triple || 0) * booking.rooms.triple}</ThemedText>
+                        </ThemedView>
+                    )}
+
+                    <View style={[styles.divider, ]} />
+
+                    <ThemedView style={styles.priceRow}>
+                        <ThemedText type="subtitle">Total</ThemedText>
+                        <ThemedText type="subtitle">${calculatedTotalPrice}</ThemedText>
+                    </ThemedView>
+                </ThemedView>
+            </ScrollView>
+
+            <View style={styles.footer}>
+                <TouchableOpacity style={[styles.payButton, { opacity: isProcessingPayment ? 0.7 : 1 }]} onPress={handlePayment} disabled={isProcessingPayment}>
+                    {isProcessingPayment ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <ThemedText style={styles.payButtonText}>
+                            Pay ${calculatedTotalPrice}
+                        </ThemedText>
+                    )}
                 </TouchableOpacity>
-                <ThemedText type="title">Payment</ThemedText>
             </View>
-
-            <ThemedText type="subtitle" style={styles.sectionTitle}>Your trip</ThemedText>
-            <View style={styles.tripCard}>
-                <Image source={{ uri: imageUri }} style={styles.tripImage} />
-                <ThemedText type="defaultSemiBold" style={styles.tripName}>{trip.base_trips.title}</ThemedText>
-            </View>
-
-            <View style={styles.priceSection}>
-                <ThemedText type="subtitle" style={styles.sectionTitle}>Price summary</ThemedText>
-                <View style={styles.priceRow}><ThemedText type="default">Base price</ThemedText><ThemedText type="defaultSemiBold">${totalPrice}</ThemedText></View>
-                <View style={styles.divider} />
-                <View style={styles.priceRow}><ThemedText type="defaultSemiBold">Total</ThemedText><ThemedText type="defaultSemiBold">${totalPrice}</ThemedText></View>
-            </View>
-            
-            <ThemedText type="subtitle" style={styles.sectionTitle}>Payment method</ThemedText>
-            <View>
-                <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'credit-card' && styles.selectedOption]} onPress={() => setPaymentMethod('credit-card')}>
-                    <FontAwesome name="credit-card" size={24} color={currentColors.textPrimary} />
-                    <ThemedText style={styles.paymentText}>Credit Card</ThemedText>
-                    {paymentMethod === 'credit-card' && <Ionicons name="checkmark-circle" size={24} color={currentColors.buttonPrimary} />}
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'paypal' && styles.selectedOption]} onPress={() => setPaymentMethod('paypal')}>
-                    <FontAwesome name="paypal" size={24} color={currentColors.textPrimary} />
-                    <ThemedText style={styles.paymentText}>Paypal</ThemedText>
-                    {paymentMethod === 'paypal' && <Ionicons name="checkmark-circle" size={24} color={currentColors.buttonPrimary} />}
-                </TouchableOpacity>
-            </View>
-
-            {paymentMethod === 'credit-card' && (
-                <View style={styles.form}>
-                    <TextInput placeholder="Card Number" style={styles.input} placeholderTextColor={currentColors.textSecondary} keyboardType="numeric" />
-                    <View style={styles.inputRow}>
-                        <TextInput placeholder="MM/YY" style={[styles.input, styles.inputHalf]} placeholderTextColor={currentColors.textSecondary} keyboardType="numeric" />
-                        <TextInput placeholder="CVC" style={[styles.input, styles.inputHalf]} placeholderTextColor={currentColors.textSecondary} keyboardType="numeric" />
-                    </View>
-                    <TextInput placeholder="Name" style={styles.input} placeholderTextColor={currentColors.textSecondary} />
-                </View>
-            )}
-
-            <View style={styles.saveCardRow}>
-                <ThemedText>Save card for future use</ThemedText>
-                <Switch trackColor={{ false: currentColors.icon, true: currentColors.buttonPrimary }} thumbColor={"#f4f3f4"} onValueChange={setSaveCard} value={saveCard} />
-            </View>
-
-            <TouchableOpacity style={styles.payButton} onPress={handlePayment} disabled={isBooking}>
-                <ThemedText style={styles.payButtonText}>
-                    {isBooking ? "Processing..." : `Pay $${totalPrice}`}
-                </ThemedText>
-            </TouchableOpacity>
-        </ScrollView>
+        </View>
+        </SafeAreaView>
     );
 }
+
+const styles = StyleSheet.create({
+    container: { flex: 1 },
+    contentContainer: { padding: 20, paddingBottom: 20 },
+    header: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 20,  },
+    backButton: { position: 'absolute', left: 0, zIndex: 1, padding: 5 },
+    sectionTitle: { marginTop: 20, marginBottom: 15 },
+    tripCard: { borderRadius: 12, padding: 15, flexDirection: 'row', alignItems: 'center' },
+    tripImage: { width: 60, height: 60, borderRadius: 8 },
+    tripName: { marginLeft: 15, flex: 1, fontSize: 16 },
+    priceSection: { marginTop: 10 },
+    priceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12 },
+    divider: { height: 1, marginVertical: 15 },
+    footer: { padding: 20, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
+    payButton: { padding: 16, borderRadius: 12, alignItems: 'center', backgroundColor: '#2563eb' },
+    payButtonText: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' }
+});

@@ -239,7 +239,7 @@ export default function BookingConfirmedScreen() {
               QR Code
             </ThemedText>
             <ThemedView style={[styles.qrCodeBox, { padding: 30 }]}>
-              {" "}
+              
               <QRCode value={confirmationNumber} size={180} />
             </ThemedView>
           </View>

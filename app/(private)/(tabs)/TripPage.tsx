@@ -1,11 +1,12 @@
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 import TripCard from "@/components/TripCard";
 import TripTabs from "@/components/TripTabs";
 import { useAuth } from "@/hooks/useAuth";
+import { useThemeColor } from "@/hooks/useThemeColor";
 import { supabase } from "@/lib/supabase";
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
-import { ThemedView } from "@/components/ThemedView";
-import { ThemedText } from "@/components/ThemedText";
+import { ScrollView, StyleSheet } from "react-native";
 
 interface Trip {
   id: string;
@@ -19,8 +20,10 @@ interface Trip {
 export default function TripPage() {
   const { user } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [currentTab, setCurrentTab] = useState<"On Going" | "Completed">("On Going");
-
+  const [currentTab, setCurrentTab] = useState<"On Going" | "Completed">(
+    "On Going"
+  );
+const backgroundColor = useThemeColor({}, "background");
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return {
@@ -42,7 +45,8 @@ export default function TripPage() {
 
       const { data: bookings, error } = await supabase
         .from("bookings")
-        .select(`
+        .select(
+          `
           id,
           ticket_id,
           trip_schedules (
@@ -55,7 +59,8 @@ export default function TripPage() {
               photo_urls
             )
           )
-        `)
+        `
+        )
         .eq("user_id", user.id);
 
       if (error) {
@@ -97,21 +102,15 @@ export default function TripPage() {
     fetchTrips();
   }, [user?.id]);
 
-  const filteredTrips = trips.filter((trip) => trip.status === currentTab);
+  const filteredTrips = trips.filter(trip => trip.status === currentTab);
 
   return (
+      <ScrollView contentContainerStyle={styles.scrollContent} style={{ backgroundColor: backgroundColor }}>
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <ThemedText type="title" style={styles.heading}>
-          My Trips
-        </ThemedText>
-
-        <View style={styles.tabsContainer}>
-          <TripTabs currentTab={currentTab} setCurrentTab={setCurrentTab} />
-        </View>
+        <TripTabs currentTab={currentTab} setCurrentTab={setCurrentTab} />
 
         {filteredTrips.length > 0 ? (
-          filteredTrips.map((trip) => (
+          filteredTrips.map(trip => (
             <TripCard
               key={trip.id}
               title={trip.title}
@@ -127,8 +126,8 @@ export default function TripPage() {
             No {currentTab.toLowerCase()} trips found.
           </ThemedText>
         )}
-      </ScrollView>
     </ThemedView>
+      </ScrollView>
   );
 }
 

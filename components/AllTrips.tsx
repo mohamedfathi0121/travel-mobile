@@ -1,28 +1,48 @@
-"use client";
-
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { useThemeColor } from "@/hooks/useThemeColor";
+import { supabase } from "@/lib/supabase";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { View } from "react-native";
 import {
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
   Image,
-  FlatList,
-  useColorScheme,
+  Pressable,
+  ScrollView,
+  StyleSheet,
 } from "react-native";
-import { supabase } from "../lib/supabase";
-import SkeletonPlaceholder from "react-native-skeleton-placeholder";
-import { ThemedText } from "./ThemedText";
-import { ThemedView } from "./ThemedView";
 
-const AllTrips: React.FC = () => {
-  const [trips, setTrips] = useState<any[]>([]);
-  const [filteredTrips, setFilteredTrips] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [city, setCity] = useState<string>("");
-  const [price, setPrice] = useState<string>("");
-  const [time, setTime] = useState<string>("");
-  const [country, setCountry] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const tripsPerPage = 6;
+interface Trip {
+  id: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  available_tickets: number;
+  sold_tickits: number;
+  price: {
+    price_single: number;
+    price_double: number;
+    price_triple: number;
+  };
+  base_trips: {
+    title: string;
+    description: string;
+    city: string;
+    country: string;
+    photo_urls: string[];
+  };
+}
+
+export default function AllTripsScreen() {
+  const backgroundColor = useThemeColor({}, "background");
+
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [filteredTrips, setFilteredTrips] = useState<Trip[]>([]);
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
+  const [price, setPrice] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -30,15 +50,20 @@ const AllTrips: React.FC = () => {
       const { data, error } = await supabase
         .from("trip_schedules")
         .select("*, base_trips(*)");
-      if (!error && data) {
-        const now = new Date();
-        const activeTrips = data.filter((item) => {
-          const endDate = new Date(item.base_trips?.end_date);
-          return endDate >= now;
-        });
-        setTrips(activeTrips);
-        setFilteredTrips(activeTrips);
+
+      if (error) {
+        console.error("Supabase fetch error:", error);
+        setLoading(false);
+        return;
       }
+
+      const today = new Date();
+      const upcomingTrips = data.filter(
+        (trip: Trip) => new Date(trip.end_date) >= today
+      );
+
+      setTrips(upcomingTrips);
+      setFilteredTrips(upcomingTrips);
       setLoading(false);
     };
 
@@ -46,141 +71,168 @@ const AllTrips: React.FC = () => {
   }, []);
 
   const handleFilter = () => {
-    let result = trips;
+    let result = [...trips];
 
-    if (city) result = result.filter((trip) => trip.base_trips?.city?.toLowerCase().includes(city.toLowerCase()));
-    if (price) result = result.filter((trip) => Number(trip.base_trips?.price) <= Number(price));
-    if (time) result = result.filter((trip) => trip.base_trips?.time?.toLowerCase().includes(time.toLowerCase()));
-    if (country) result = result.filter((trip) => trip.base_trips?.country?.toLowerCase().includes(country.toLowerCase()));
+    if (city) {
+      result = result.filter(trip =>
+        trip.base_trips.city.toLowerCase().includes(city.toLowerCase())
+      );
+    }
+
+    if (country) {
+      result = result.filter(trip =>
+        trip.base_trips.country.toLowerCase().includes(country.toLowerCase())
+      );
+    }
+
+    if (price) {
+      const max = Number(price);
+      result = result.filter(
+        trip =>
+          trip.price?.price_single <= max ||
+          trip.price?.price_double <= max ||
+          trip.price?.price_triple <= max
+      );
+    }
 
     setFilteredTrips(result);
-    setCurrentPage(1);
   };
-
-  const start = (currentPage - 1) * tripsPerPage;
-  const currentTrips = filteredTrips.slice(start, start + tripsPerPage);
-  const totalPages = Math.ceil(filteredTrips.length / tripsPerPage);
-
-  const renderSkeletons = () => (
-    <SkeletonPlaceholder backgroundColor="#e1e9ee" highlightColor="#f2f8fc">
-      {[...Array(tripsPerPage)].map((_, index) => (
-        <ThemedView key={index} className="bg-input p-3 rounded mb-3">
-          <ThemedView className="w-full h-44 rounded mb-2" />
-          <ThemedView className="h-4 w-2/3 mb-2 rounded" />
-          <ThemedView className="h-3 w-full mb-1 rounded" />
-          <ThemedView className="h-3 w-1/2 mb-1 rounded" />
-        </ThemedView>
-      ))}
-    </SkeletonPlaceholder>
-  );
-
   return (
-    <ThemedView className="flex-1 p-4 bg-background">
-      <ThemedText className="text-2xl font-bold text-textPrimary mb-4">All Trips</ThemedText>
+    <ScrollView
+      style={{ backgroundColor }}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={styles.container}>
+        {/* Cards */}
+        {loading ? (
+          <ActivityIndicator size="large" />
+        ) : filteredTrips.length > 0 ? (
+          filteredTrips.map(trip => {
+            const remainingTickets = trip.available_tickets - trip.sold_tickits;
 
-      {/* Filters */}
-      <ThemedView className="gap-2 mb-4">
-        <TextInput
-          placeholder="City"
-          value={city}
-          onChangeText={setCity}
-          placeholderTextColor="#94a3b8"
-          className="bg-input text-textPrimary p-3 rounded"
-        />
-        <TextInput
-          placeholder="Country"
-          value={country}
-          onChangeText={setCountry}
-          placeholderTextColor="#94a3b8"
-          className="bg-input text-textPrimary p-3 rounded"
-        />
-        <TextInput
-          placeholder="Max Price"
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="numeric"
-          placeholderTextColor="#94a3b8"
-          className="bg-input text-textPrimary p-3 rounded"
-        />
-        <TextInput
-          placeholder="Time"
-          value={time}
-          onChangeText={setTime}
-          placeholderTextColor="#94a3b8"
-          className="bg-input text-textPrimary p-3 rounded"
-        />
-        <TouchableOpacity
-          onPress={handleFilter}
-          className="bg-buttonPrimary p-3 rounded items-center"
-        >
-          <ThemedText className="text-buttonPrimaryText font-semibold">Filter</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
+            return (
+              <Pressable
+                key={trip.id}
+                onPress={() => router.push(`/tripdetails/${trip.id}`)}
+              >
+                <View key={trip.id} style={styles.card}>
+                  {trip.base_trips?.photo_urls?.[0] ? (
+                    <Image
+                      source={{ uri: trip.base_trips.photo_urls[0] }}
+                      style={styles.image}
+                    />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <ThemedText>No Image</ThemedText>
+                    </View>
+                  )}
 
-      {/* Trip List or Skeleton */}
-      {loading ? (
-        renderSkeletons()
-      ) : (
-        <FlatList
-          data={currentTrips}
-          keyExtractor={(item) => item.id?.toString()}
-          contentContainerStyle={{ gap: 12, paddingBottom: 16 }}
-          renderItem={({ item }) => (
-            <ThemedView className="bg-input p-3 rounded shadow-sm mb-2">
-              {item.base_trips?.photo_urls ? (
-                <Image source={{ uri: item.base_trips.photo_urls }} className="w-full h-44 rounded mb-2" />
-              ) : (
-                <ThemedView className="w-full h-44 bg-gray-300 rounded items-center justify-center mb-2">
-                  <ThemedText className="text-textSecondary">No Image</ThemedText>
-                </ThemedView>
-              )}
-              <ThemedText className="text-lg font-bold text-textPrimary mb-1">{item.base_trips?.title}</ThemedText>
-              <ThemedText className="text-textPrimary">{item.base_trips?.description}</ThemedText>
-              <ThemedText className="text-textPrimary">City: {item.base_trips?.city}</ThemedText>
-              <ThemedText className="text-textPrimary">Country: {item.base_trips?.country}</ThemedText>
-              <ThemedText className="text-textPrimary">Price: ${item.base_trips?.price}</ThemedText>
-              <ThemedText className="text-textPrimary">Time: {item.base_trips?.time}</ThemedText>
-            </ThemedView>
-          )}
-        />
-      )}
-
-      {/* Pagination */}
-      <ThemedView className="mt-6 px-4">
-        <ThemedView className="flex-row justify-center flex-wrap gap-2">
-          <TouchableOpacity
-            onPress={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-2 bg-gray-300 rounded disabled:opacity-50"
-          >
-            <ThemedText className="text-textPrimary">Previous</ThemedText>
-          </TouchableOpacity>
-
-          {[...Array(totalPages)].map((_, i) => (
-            <TouchableOpacity
-              key={i}
-              onPress={() => setCurrentPage(i + 1)}
-              className={`px-3 py-2 rounded ${
-                currentPage === i + 1 ? "bg-buttonPrimary" : "bg-gray-200"
-              }`}
-            >
-              <ThemedText className={currentPage === i + 1 ? "text-white" : "text-textPrimary"}>
-                {i + 1}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-
-          <TouchableOpacity
-            onPress={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-2 bg-gray-300 rounded disabled:opacity-50"
-          >
-            <ThemedText className="text-textPrimary">Next</ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
-      </ThemedView>
-    </ThemedView>
+                  <ThemedText type="defaultSemiBold" style={styles.title}>
+                    {trip.base_trips.title}
+                  </ThemedText>
+                  <ThemedText>{trip.base_trips.description}</ThemedText>
+                  <ThemedText>City: {trip.base_trips.city}</ThemedText>
+                  <ThemedText>Country: {trip.base_trips.country}</ThemedText>
+                  <ThemedText>
+                    <ThemedText>Status: </ThemedText>
+                    <ThemedText
+                      style={{
+                        color: trip.status === "open" ? "green" : "red",
+                      }}
+                    >
+                      {trip.status}
+                    </ThemedText>
+                  </ThemedText>
+                  <ThemedText>
+                    Remaining Tickets: {remainingTickets} /{" "}
+                    {trip.available_tickets}
+                  </ThemedText>
+                  <ThemedText>
+                    Price: Single ${trip.price?.price_single}, Double $
+                    {trip.price?.price_double}, Triple $
+                    {trip.price?.price_triple}
+                  </ThemedText>
+                  <ThemedText style={styles.dateText}>
+                    Start: {new Date(trip.start_date).toLocaleDateString()} |
+                    End: {new Date(trip.end_date).toLocaleDateString()}
+                  </ThemedText>
+                </View>
+              </Pressable>
+            );
+          })
+        ) : (
+          <ThemedText style={styles.emptyText}>No trips found.</ThemedText>
+        )}
+      </View>
+    </ScrollView>
   );
-};
+}
 
-export default AllTrips;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    flexGrow: 1,
+  },
+  heading: {
+    fontSize: 22,
+    marginBottom: 16,
+  },
+  filterContainer: {
+    marginBottom: 24,
+    gap: 12,
+  },
+  input: {
+    padding: 12,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
+  },
+  filterButton: {
+    color: "#1E90FF",
+    marginTop: 8,
+  },
+  card: {
+    borderRadius: 12,
+    borderColor: "#fff",
+    borderWidth: 2,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  image: {
+    width: "100%",
+    height: 160,
+    borderRadius: 8,
+    marginBottom: 8,
+    resizeMode: "cover",
+  },
+  imagePlaceholder: {
+    width: "100%",
+    height: 160,
+    borderRadius: 8,
+    backgroundColor: "#ccc",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  dateText: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 6,
+  },
+  emptyText: {
+    textAlign: "center",
+    marginTop: 20,
+    fontSize: 16,
+  },
+});

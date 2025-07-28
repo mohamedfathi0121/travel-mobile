@@ -1,5 +1,9 @@
+// TripTabs.tsx
+import { useThemeColor } from "@/hooks/useThemeColor";
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { StyleSheet, TouchableOpacity } from "react-native";
+import { ThemedText } from "./ThemedText";
+import { ThemedView } from "./ThemedView";
 
 const tabs = ["On Going", "Completed"];
 
@@ -9,25 +13,31 @@ interface TripTabsProps {
 }
 
 export default function TripTabs({ currentTab, setCurrentTab }: TripTabsProps) {
+  const buttonPrimary = useThemeColor({}, "buttonPrimary");
+
   return (
-    <View style={styles.tabContainer}>
-      {tabs.map((tab) => {
+    <ThemedView style={styles.tabContainer}>
+      {tabs.map(tab => {
         const isActive = currentTab === tab;
         return (
           <TouchableOpacity
             key={tab}
             onPress={() => setCurrentTab(tab)}
-            style={[styles.tab, isActive && styles.activeTab]}
+            style={[styles.tab, isActive && { borderBottomColor: buttonPrimary }]}
           >
-            <Text
-              style={[styles.tabText, isActive && styles.activeTabText]}
+            <ThemedText
+              style={[
+                styles.tabText,
+                isActive && (
+                { color: buttonPrimary }),
+              ]}
             >
               {tab}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         );
       })}
-    </View>
+    </ThemedView>
   );
 }
 
@@ -36,8 +46,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
   },
   tab: {
     paddingVertical: 8,
@@ -45,15 +53,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  activeTab: {
-    borderBottomColor: "#2563eb",
-  },
+
   tabText: {
-    color: "#666",
     fontSize: 14,
     fontWeight: "500",
   },
-  activeTabText: {
-    color: "#2563eb",
-  },
+ 
 });
